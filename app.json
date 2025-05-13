@@ -1,42 +1,70 @@
 {
   "expo": {
-    "name": "BR8",
-    "slug": "BR8",
+    "name": "BR5",
+    "slug": "BR5",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "br8",
-    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "br5",
+    "splash": {
+      "image": "./assets/LooLogoStart.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.BR5",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We need your location to find bathrooms near you",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location to find bathrooms near you and provide updates about nearby facilities",
+        "NSLocationAlwaysUsageDescription": "We need your location to find bathrooms near you and provide updates about nearby facilities",
+        "UIBackgroundModes": [
+          "location"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.anonymous.BR5"
     },
     "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/LooLogoStart.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#000000"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "$(PRODUCT_NAME) needs access to your location to find nearby bathrooms.",
+          "locationAlwaysAndWhenInUsePermission": "$(PRODUCT_NAME) needs access to your location to find nearby bathrooms.",
+          "locationAlwaysPermission": "$(PRODUCT_NAME) needs access to your location to find nearby bathrooms.",
+          "isIosBackgroundLocationEnabled": true
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true
+    "extra": {
+      "eas": {
+        "projectId": "2bedda58-809d-4d93-acf4-243bc7b7f4b4"
+      }
     }
   }
 }
