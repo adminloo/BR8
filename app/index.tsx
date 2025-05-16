@@ -33,74 +33,22 @@ export default function HomeScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    console.log('=== DEBUG: Component Mount ===');
-    console.log('Bathrooms:', bathrooms?.length);
-    console.log('Is Loading:', isLoading);
-    console.log('Error:', error);
-
-    // If we have bathrooms data and the map is ready, ensure it's showing the right region
-    if (bathrooms?.length > 0 && mapRef.current && !isLoading) {
-      const coordinates = bathrooms.map(b => ({
-        latitude: b.latitude,
-        longitude: b.longitude,
-      }));
-
-      // Calculate the center point and deltas to fit all bathrooms
-      const minLat = Math.min(...coordinates.map(c => c.latitude));
-      const maxLat = Math.max(...coordinates.map(c => c.latitude));
-      const minLng = Math.min(...coordinates.map(c => c.longitude));
-      const maxLng = Math.max(...coordinates.map(c => c.longitude));
-
-      const centerLat = (minLat + maxLat) / 2;
-      const centerLng = (minLng + maxLng) / 2;
-      const latDelta = (maxLat - minLat) * 1.5; // 1.5 for some padding
-      const lngDelta = (maxLng - minLng) * 1.5;
-
-      const newRegion = {
-        latitude: centerLat,
-        longitude: centerLng,
-        latitudeDelta: Math.max(0.1, latDelta), // Minimum zoom level
-        longitudeDelta: Math.max(0.1, lngDelta),
-      };
-
-      console.log('Setting initial map region to fit all bathrooms:', newRegion);
-      setInitialRegion(newRegion);
-      mapRef.current.animateToRegion(newRegion, 1000);
+    // Only log if there's an error or loading state change
+    if (error) {
+      console.log('Error loading bathrooms:', error);
     }
   }, [bathrooms, isLoading, error]);
 
   useEffect(() => {
     (async () => {
-      console.log('=== DEBUG: Getting location permissions ===');
       const { status } = await Location.requestForegroundPermissionsAsync();
-      console.log('Location permission status:', status);
-      
-      if (status === 'granted') {
-        try {
-          console.log('Getting current location...');
-          const location = await Location.getCurrentPositionAsync({});
-          console.log('Location obtained:', location.coords);
-          
-          const newRegion = {
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-            latitudeDelta: 0.1,
-            longitudeDelta: 0.1,
-          };
-          console.log('Setting new region:', newRegion);
-          setInitialRegion(newRegion);
-          if (mapRef.current) {
-            mapRef.current.animateToRegion(newRegion, 1000);
-          }
-        } catch (error) {
-          console.error('Error getting location:', error);
-        }
+      if (status !== 'granted') {
+        console.log('Location permission denied');
       }
     })();
   }, []);
 
   const renderMarker = (bathroom: Bathroom) => {
-    console.log('=== DEBUG: Rendering marker for bathroom ===', bathroom.id);
     const rating = bathroom.averageRating || 0;
     return (
       <Marker
@@ -112,7 +60,6 @@ export default function HomeScreen() {
         }}
         zIndex={1}
         onPress={() => {
-          console.log('=== DEBUG: Marker pressed ===', bathroom.id);
           router.push({
             pathname: '/bathroom-details/[id]',
             params: { id: bathroom.id }
@@ -128,21 +75,12 @@ export default function HomeScreen() {
   };
 
   const onRegionChangeComplete = (region: Region) => {
-    console.log('=== DEBUG: Map region changed ===');
-    console.log('New region:', region);
     setCurrentRegion(region);
   };
 
   const getFilteredBathrooms = () => {
-    if (!bathrooms) {
-      console.log('No bathrooms data available');
-      return [];
-    }
+    if (!bathrooms) return [];
     
-    console.log('=== DEBUG: Filtering Bathrooms ===');
-    console.log('Total bathrooms before filtering:', bathrooms.length);
-    console.log('Active filters:', filters);
-
     // If no filters are active, return all bathrooms
     const hasActiveFilters = 
       filters.isOpenNow ||
@@ -150,37 +88,30 @@ export default function HomeScreen() {
       filters.hasChangingTables ||
       filters.minRating > 0;
 
-    if (!hasActiveFilters) {
-      console.log('No active filters, returning all bathrooms');
-      return bathrooms;
-    }
+    if (!hasActiveFilters) return bathrooms;
 
     // Apply filters if any are active
     const filtered = bathrooms.filter(bathroom => {
-      console.log('\nChecking bathroom:', bathroom.name);
-      console.log('Hours data:', bathroom.hours);
-      
-      if (filters.isOpenNow) {
-        const isCurrentlyOpen = isOpen(bathroom);
-        console.log('isOpenNow check - isCurrentlyOpen:', isCurrentlyOpen);
-        if (!isCurrentlyOpen) return false;
-      }
-      if (filters.isWheelchairAccessible && !bathroom.isAccessible) {
-        console.log('Failed wheelchair check');
+      try {
+        // Safely check properties with default values if undefined
+        const isAccessible = bathroom.isAccessible ?? false;
+        const hasChangingTables = bathroom.hasChangingTables ?? false;
+        const averageRating = bathroom.averageRating ?? 0;
+        
+        if (filters.isOpenNow && !isOpen(bathroom)) return false;
+        if (filters.isWheelchairAccessible && !isAccessible) return false;
+        if (filters.hasChangingTables && !hasChangingTables) return false;
+        if (filters.minRating > 0 && averageRating < filters.minRating) return false;
+        
+        return true;
+      } catch (error) {
+        console.error('Error filtering bathroom:', bathroom.name, error);
         return false;
       }
-      if (filters.hasChangingTables && !bathroom.hasChangingTables) {
-        console.log('Failed changing tables check');
-        return false;
-      }
-      if (filters.minRating > 0 && bathroom.averageRating < filters.minRating) {
-        console.log('Failed rating check');
-        return false;
-      }
-      return true;
     });
 
-    console.log('\nFiltered bathrooms count:', filtered.length);
+    // Only log the summary of filtered results
+    console.log(`Filtered bathrooms: ${filtered.length} of ${bathrooms.length}`);
     return filtered;
   };
 
@@ -204,10 +135,7 @@ export default function HomeScreen() {
           loadingBackgroundColor="#eeeeee"
           moveOnMarkerPress={false}
         >
-          {bathrooms && bathrooms.length > 0 && getFilteredBathrooms().map((bathroom) => {
-            console.log('Rendering bathroom:', bathroom.id);
-            return renderMarker(bathroom);
-          })}
+          {bathrooms && bathrooms.length > 0 && getFilteredBathrooms().map(renderMarker)}
         </MapView>
 
         {error && (

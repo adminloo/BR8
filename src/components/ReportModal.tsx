@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useRef, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface ReportModalProps {
   visible: boolean;
@@ -26,6 +26,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   const [details, setDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedType, setSelectedType] = useState<string>('');
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const reportTypes = [
     { id: 'CLOSED', label: 'Permanently Closed' },
@@ -72,15 +73,25 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalContent}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        >
           <View style={styles.header}>
             <Text style={styles.title}>Report an Issue</Text>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color="#000" />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.content}>
+          <ScrollView 
+            ref={scrollViewRef}
+            style={styles.content} 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
+          >
             <Text style={styles.sectionTitle}>What's the issue?</Text>
             {reportTypes.map((type) => (
               <TouchableOpacity
@@ -113,6 +124,11 @@ export const ReportModal: React.FC<ReportModalProps> = ({
               multiline
               numberOfLines={4}
               maxLength={500}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 100);
+              }}
             />
 
             <TouchableOpacity
@@ -124,8 +140,8 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                 {isSubmitting ? 'Submitting...' : 'Submit Report'}
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -134,75 +150,119 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    paddingTop: 50,
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '90%',
+    borderRadius: 24,
+    maxHeight: '85%',
+    minHeight: 600,
+    marginHorizontal: 12,
+    marginVertical: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  closeButton: {
+    padding: 4,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    letterSpacing: -0.5,
   },
   content: {
     flex: 1,
   },
+  scrollContent: {
+    padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+  },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    marginBottom: 12,
+    color: '#1A1A1A',
+    marginBottom: 20,
+    letterSpacing: -0.3,
   },
   detailsTitle: {
-    marginTop: 20,
+    marginTop: 28,
   },
   typeButton: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    marginBottom: 8,
+    padding: 18,
+    borderRadius: 16,
+    backgroundColor: '#F8F8F8',
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   selectedTypeButton: {
     backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
   },
   typeButtonText: {
-    fontSize: 16,
-    color: '#333',
+    fontSize: 17,
+    color: '#1A1A1A',
+    fontWeight: '500',
+    textAlign: 'center',
   },
   selectedTypeButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
   },
   detailsInput: {
-    height: 120,
+    minHeight: 120,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    borderColor: '#E5E5E5',
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 17,
     textAlignVertical: 'top',
-    marginBottom: 20,
+    marginBottom: 24,
+    backgroundColor: '#F8F8F8',
+    color: '#1A1A1A',
   },
   submitButton: {
     backgroundColor: '#007AFF',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 16,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   submitButtonDisabled: {
-    opacity: 0.5,
+    backgroundColor: '#E5E5E5',
   },
   submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 17,
     fontWeight: '600',
+    letterSpacing: -0.4,
   },
 }); 

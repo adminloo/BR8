@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { Platform } from 'react-native';
 
 const firebaseConfig = {
@@ -19,4 +19,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore
-export const db = getFirestore(app); 
+export const db = getFirestore(app);
+
+// Connect to emulator in development
+if (__DEV__) {
+  try {
+    console.log('Connecting to Firestore emulator...');
+    // Use 127.0.0.1 instead of localhost for more reliable connection
+    connectFirestoreEmulator(db, '127.0.0.1', 9090);
+    console.log('Successfully connected to Firestore emulator');
+  } catch (error) {
+    console.error('Failed to connect to Firestore emulator:', error);
+  }
+} 
