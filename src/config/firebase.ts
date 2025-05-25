@@ -8,7 +8,7 @@ const env = Constants.expoConfig?.extra?.env || {};
 
 const firebaseConfig = {
   apiKey: env.FIREBASE_API_KEY,
-  projectId: env.FIREBASE_PROJECT_ID || 'demo-project',  // Fallback for emulator
+  projectId: env.FIREBASE_PROJECT_ID,
   storageBucket: env.FIREBASE_STORAGE_BUCKET,
   authDomain: env.FIREBASE_AUTH_DOMAIN,
   messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID,
@@ -27,20 +27,7 @@ const db = initializeFirestore(app, {
   experimentalForceLongPolling: true, // This helps with React Native compatibility
 });
 
-// Connect to emulators in development
-if (__DEV__) {
-  console.log('Running in development mode');
-  // Commenting out emulator connection to use production
-  // try {
-  //   const [host, port] = (env.FIRESTORE_EMULATOR_HOST || '10.0.0.99:9199').split(':');
-  //   console.log(`Connecting to Firestore emulator at ${host}:${port}`);
-  //   connectFirestoreEmulator(db, host, parseInt(port, 10));
-  //   console.log('Successfully connected to Firestore emulator');
-  // } catch (error) {
-  //   console.error('Failed to connect to Firestore emulator:', error);
-  // }
-} else {
-  console.log('Running in production mode');
-}
+// Production mode logging
+console.log('Running in production mode with project:', firebaseConfig.projectId);
 
 export { db };
