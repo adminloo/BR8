@@ -112,27 +112,18 @@ function parseTimeString(timeStr: string): { hours: number, minutes: number } {
 }
 
 export function isOpen(bathroom: Bathroom): boolean {
-  console.log('\n=== DEBUG: Checking if bathroom is open ===');
-  console.log('Bathroom:', bathroom.name);
-  
   if (!bathroom?.hours) {
-    console.log('No hours data available');
     return false;
   }
-
-  console.log('Hours data:', bathroom.hours);
 
   // Handle string format (e.g. "Saturday: 4 AM to 11:30 PM, Sunday: 4 AM to 11:30 PM, ...")
   if (typeof bathroom.hours === 'string') {
     const hoursString = bathroom.hours as string;
-    console.log('Using string hours format');
     
     if (hoursString === '24/7') {
-      console.log('Is 24/7');
       return true;
     }
     if (hoursString === 'UNK') {
-      console.log('Hours are unknown');
       return false;
     }
 
@@ -143,19 +134,11 @@ export function isOpen(bathroom: Bathroom): boolean {
       const currentMinute = now.getMinutes();
       const currentTime = currentHour * 60 + currentMinute;
 
-      console.log('Current time info:', {
-        currentDay,
-        currentHour,
-        currentMinute,
-        currentTime
-      });
-
       // Parse the hours string
       const hoursArray = hoursString.split(', ');
       for (const dayHours of hoursArray) {
         const [day, timeRange] = dayHours.split(': ');
         if (day === currentDay) {
-          console.log('Found schedule for current day:', timeRange);
           const [openTime, closeTime] = timeRange.split(' to ');
           
           // Parse opening time
@@ -177,25 +160,16 @@ export function isOpen(bathroom: Bathroom): boolean {
           const openTimeMinutes = openHour * 60 + openMinute;
           const closeTimeMinutes = closeHour * 60 + closeMinute;
 
-          console.log('Parsed times:', {
-            openTimeMinutes,
-            closeTimeMinutes,
-            currentTime
-          });
-
           if (closeTimeMinutes < openTimeMinutes) {
             // Handle overnight hours
             const isOpen = currentTime >= openTimeMinutes || currentTime <= closeTimeMinutes;
-            console.log('Overnight hours check:', isOpen);
             return isOpen;
           }
 
           const isOpen = currentTime >= openTimeMinutes && currentTime <= closeTimeMinutes;
-          console.log('Regular hours check:', isOpen);
           return isOpen;
         }
       }
-      console.log('No matching schedule found for current day');
       return false;
     } catch (e) {
       console.error('Error parsing hours string:', e);
@@ -205,14 +179,10 @@ export function isOpen(bathroom: Bathroom): boolean {
 
   // Handle 24/7 case
   if (isScheduleHours(bathroom.hours)) {
-    console.log('Using ScheduleHours format');
-    
     if (bathroom.hours.is24_7 === true) {
-      console.log('Is 24/7');
       return true;
     }
     if (bathroom.hours.isUnsure === true) {
-      console.log('Hours are unsure');
       return false;
     }
     
@@ -223,21 +193,11 @@ export function isOpen(bathroom: Bathroom): boolean {
       const currentMinute = now.getMinutes();
       const currentTime = currentHour * 60 + currentMinute;
 
-      console.log('Current time info:', {
-        currentDay,
-        currentHour,
-        currentMinute,
-        currentTime
-      });
-
       const daySchedule = bathroom.hours.schedule[currentDay];
       
       if (!daySchedule) {
-        console.log('No schedule found for current day');
         return false;
       }
-
-      console.log('Day schedule:', daySchedule);
 
       try {
         const openTime = parseTimeString(daySchedule.open);
@@ -246,43 +206,28 @@ export function isOpen(bathroom: Bathroom): boolean {
         const openTimeMinutes = openTime.hours * 60 + openTime.minutes;
         const closeTimeMinutes = closeTime.hours * 60 + closeTime.minutes;
 
-        console.log('Parsed times:', {
-          openTime: daySchedule.open,
-          closeTime: daySchedule.close,
-          openTimeMinutes,
-          closeTimeMinutes,
-          currentTime
-        });
-
         if (closeTimeMinutes < openTimeMinutes) {
           // Handle overnight hours
           const isOpen = currentTime >= openTimeMinutes || currentTime <= closeTimeMinutes;
-          console.log('Overnight hours check:', isOpen);
           return isOpen;
         }
 
         const isOpen = currentTime >= openTimeMinutes && currentTime <= closeTimeMinutes;
-        console.log('Regular hours check:', isOpen);
         return isOpen;
       } catch (e) {
         console.error('Error parsing schedule hours:', e);
         return false;
       }
     }
-    console.log('No schedule data found');
     return false;
   }
 
   // Handle WeeklyHours format
   if (isWeeklyHours(bathroom.hours)) {
-    console.log('Using WeeklyHours format');
-    
     if (bathroom.hours.is24_7 === true) {
-      console.log('Is 24/7');
       return true;
     }
     if (bathroom.hours.isUnsure === true) {
-      console.log('Hours are unsure');
       return false;
     }
 
@@ -292,21 +237,12 @@ export function isOpen(bathroom: Bathroom): boolean {
     const currentMinute = now.getMinutes();
     const currentTime = currentHour * 60 + currentMinute;
 
-    console.log('Current time info:', {
-      currentDay,
-      currentHour,
-      currentMinute,
-      currentTime
-    });
-
     const dayHours = bathroom.hours[currentDay as keyof WeeklyHours];
 
     if (!dayHours || !isDayHours(dayHours)) {
-      console.log('No hours found for current day');
       return false;
     }
     if (dayHours.isClosed) {
-      console.log('Marked as closed for today');
       return false;
     }
     
@@ -317,21 +253,13 @@ export function isOpen(bathroom: Bathroom): boolean {
       const openTime = openHours * 60 + openMinutes;
       const closeTime = closeHours * 60 + closeMinutes;
 
-      console.log('Parsed times:', {
-        openTime,
-        closeTime,
-        currentTime
-      });
-
       if (closeTime < openTime) {
         // Handle overnight hours
         const isOpen = currentTime >= openTime || currentTime <= closeTime;
-        console.log('Overnight hours check:', isOpen);
         return isOpen;
       }
 
       const isOpen = currentTime >= openTime && currentTime <= closeTime;
-      console.log('Regular hours check:', isOpen);
       return isOpen;
     } catch (e) {
       console.error('Error parsing hours:', e);
@@ -339,7 +267,6 @@ export function isOpen(bathroom: Bathroom): boolean {
     }
   }
 
-  console.log('Unknown hours format');
   return false; // Default to closed if we can't determine hours
 }
 

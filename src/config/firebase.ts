@@ -1,34 +1,46 @@
+import Constants from 'expo-constants';
 import { initializeApp } from 'firebase/app';
-import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { Platform } from 'react-native';
 
+// Load environment variables
+const env = Constants.expoConfig?.extra?.env || {};
+
 const firebaseConfig = {
-  apiKey: "AIzaSyDOyTAfz18kSf2pi6Shar_wwFTNbvmiQ6A",
-  projectId: "iosbr2",
-  storageBucket: "iosbr2.firebasestorage.app",
-  authDomain: "iosbr2.firebaseapp.com",
-  messagingSenderId: "750017872566",
+  apiKey: env.FIREBASE_API_KEY,
+  projectId: env.FIREBASE_PROJECT_ID || 'demo-project',  // Fallback for emulator
+  storageBucket: env.FIREBASE_STORAGE_BUCKET,
+  authDomain: env.FIREBASE_AUTH_DOMAIN,
+  messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID,
   appId: Platform.select({
-    ios: "1:750017872566:ios:9286f6ab7183f8d6a1dc17",
-    android: "1:750017872566:android:9286f6ab7183f8d6a1dc17"
+    ios: env.FIREBASE_IOS_APP_ID,
+    android: env.FIREBASE_ANDROID_APP_ID
   }),
-  databaseURL: "https://iosbr2.firebaseio.com"
+  databaseURL: env.FIREBASE_DATABASE_URL
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore
-export const db = getFirestore(app);
+// Initialize Firestore with settings
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true, // This helps with React Native compatibility
+});
 
-// Connect to emulator in development
+// Connect to emulators in development
 if (__DEV__) {
-  try {
-    console.log('Connecting to Firestore emulator...');
-    // Use 127.0.0.1 instead of localhost for more reliable connection
-    connectFirestoreEmulator(db, '127.0.0.1', 9090);
-    console.log('Successfully connected to Firestore emulator');
-  } catch (error) {
-    console.error('Failed to connect to Firestore emulator:', error);
-  }
-} 
+  console.log('Running in development mode');
+  // Commenting out emulator connection to use production
+  // try {
+  //   const [host, port] = (env.FIRESTORE_EMULATOR_HOST || '10.0.0.99:9199').split(':');
+  //   console.log(`Connecting to Firestore emulator at ${host}:${port}`);
+  //   connectFirestoreEmulator(db, host, parseInt(port, 10));
+  //   console.log('Successfully connected to Firestore emulator');
+  // } catch (error) {
+  //   console.error('Failed to connect to Firestore emulator:', error);
+  // }
+} else {
+  console.log('Running in production mode');
+}
+
+export { db };

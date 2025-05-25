@@ -2,7 +2,7 @@ const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, doc, setDoc, connectFirestoreEmulator } = require('firebase/firestore');
 
 const firebaseConfig = {
-  projectId: "iosbr2",
+  projectId: "demo-project",
 };
 
 // Initialize Firebase
@@ -12,91 +12,53 @@ const db = getFirestore(app);
 // Connect to emulator
 connectFirestoreEmulator(db, 'localhost', 8080);
 
+// Sample bathroom data
 const sampleBathrooms = [
   {
-    id: "10",
-    name: "Magnolia Community Center",
-    description: "Public restroom in community center",
-    latitude: 47.6389,
-    longitude: -122.3991,
-    isAccessible: true,
-    hasChangingTables: false,
-    requiresKey: false,
-    source: "official",
+    id: 'test-bathroom-1',
+    name: 'Test Bathroom 1',
+    latitude: 47.6062,
+    longitude: -122.3321,
+    isWheelchairAccessible: true,
+    address: '123 Test St, Seattle, WA',
+    description: 'A test bathroom in Seattle',
+    businessType: 'cafe',
     ratingCount: 1,
-    totalRating: 3,
-    averageRating: 3,
-    hours: {
-      monday: { open: "09:00", close: "21:00", isClosed: false },
-      tuesday: { open: "09:00", close: "21:00", isClosed: false },
-      wednesday: { open: "09:00", close: "21:00", isClosed: false },
-      thursday: { open: "09:00", close: "21:00", isClosed: false },
-      friday: { open: "09:00", close: "21:00", isClosed: false },
-      saturday: { open: "09:00", close: "17:00", isClosed: false },
-      sunday: { open: "09:00", close: "17:00", isClosed: false },
-      is24_7: false,
-      isUnsure: false
-    },
-    cityId: "Seattle"
+    totalRating: 4,
   },
   {
-    id: "11",
-    name: "Green Lake Park",
-    description: "Public park restroom",
-    latitude: 47.6805,
-    longitude: -122.3427,
-    isAccessible: true,
-    hasChangingTables: true,
-    requiresKey: false,
-    source: "official",
+    id: 'test-bathroom-2',
+    name: 'Test Bathroom 2',
+    latitude: 47.6205,
+    longitude: -122.3493,
+    isWheelchairAccessible: false,
+    address: '456 Sample Ave, Seattle, WA',
+    description: 'Another test bathroom in Seattle',
+    businessType: 'restaurant',
     ratingCount: 2,
     totalRating: 8,
-    averageRating: 4,
-    hours: {
-      is24_7: true
-    },
-    cityId: "Seattle"
-  },
-  {
-    id: "12",
-    name: "Pike Place Market",
-    description: "Market public restroom",
-    latitude: 47.6097,
-    longitude: -122.3422,
-    isAccessible: true,
-    hasChangingTables: true,
-    requiresKey: false,
-    source: "official",
-    ratingCount: 3,
-    totalRating: 12,
-    averageRating: 4,
-    hours: {
-      monday: { open: "08:00", close: "18:00", isClosed: false },
-      tuesday: { open: "08:00", close: "18:00", isClosed: false },
-      wednesday: { open: "08:00", close: "18:00", isClosed: false },
-      thursday: { open: "08:00", close: "18:00", isClosed: false },
-      friday: { open: "08:00", close: "18:00", isClosed: false },
-      saturday: { open: "08:00", close: "18:00", isClosed: false },
-      sunday: { open: "08:00", close: "18:00", isClosed: false },
-      is24_7: false,
-      isUnsure: false
-    },
-    cityId: "Seattle"
   }
 ];
 
 async function seedData() {
   try {
-    console.log('Starting to seed data...');
+    console.log('Starting to seed test data...');
     
+    // Add bathrooms
     for (const bathroom of sampleBathrooms) {
-      await setDoc(doc(db, 'bathrooms', bathroom.id), bathroom);
+      await setDoc(doc(db, 'bathrooms', bathroom.id), {
+        ...bathroom,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
       console.log(`Added bathroom: ${bathroom.name}`);
     }
     
-    console.log('Finished seeding data!');
+    console.log('Successfully seeded test data!');
+    process.exit(0);
   } catch (error) {
     console.error('Error seeding data:', error);
+    process.exit(1);
   }
 }
 

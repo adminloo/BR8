@@ -43,7 +43,7 @@ export interface Review {
   bathroomId: string;
   rating: number;
   comment: string;
-  createdAt: number;
+  createdAt: Date | number;
   tags?: string[];
 }
 

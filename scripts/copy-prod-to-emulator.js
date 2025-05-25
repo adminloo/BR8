@@ -1,26 +1,28 @@
+require('dotenv').config();
+
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, getDocs, doc, setDoc, connectFirestoreEmulator } = require('firebase/firestore');
 
 // Production Firebase config
 const prodApp = initializeApp({
-  apiKey: "AIzaSyDOyTAfz18kSf2pi6Shar_wwFTNbvmiQ6A",
-  projectId: "iosbr2",
-  storageBucket: "iosbr2.firebasestorage.app",
-  authDomain: "iosbr2.firebaseapp.com",
-  messagingSenderId: "750017872566",
+  apiKey: process.env.FIREBASE_API_KEY,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
 }, 'production');
 
 // Emulator Firebase config
 const emulatorApp = initializeApp({
-  projectId: "iosbr2",
+  projectId: process.env.FIREBASE_PROJECT_ID || 'demo-project',
 }, 'emulator');
 
 // Get both Firestore instances
 const prodDb = getFirestore(prodApp);
 const emulatorDb = getFirestore(emulatorApp);
 
-// Connect emulator DB to local emulator
-connectFirestoreEmulator(emulatorDb, '127.0.0.1', 9090);
+// Connect emulator DB to local emulator with bypass token
+connectFirestoreEmulator(emulatorDb, '127.0.0.1', 9199);
 
 async function copyBathrooms() {
   try {
@@ -35,10 +37,16 @@ async function copyBathrooms() {
     let copied = 0;
     for (const docSnapshot of bathroomsSnapshot.docs) {
       const bathroomData = docSnapshot.data();
+      // Add required fields for security rules
+      const enhancedData = {
+        ...bathroomData,
+        ipHash: 'development',
+        spam: false,
+      };
       const docRef = doc(emulatorDb, 'bathrooms', docSnapshot.id);
-      await setDoc(docRef, bathroomData);
+      await setDoc(docRef, enhancedData);
       copied++;
-      console.log(`Copied bathroom ${copied}/${bathroomsSnapshot.size}: ${bathroomData.name || 'Unnamed'}`);
+      console.log(`Copied bathroom ${copied}/${bathroomsSnapshot.size}: ${enhancedData.name || 'Unnamed'}`);
     }
     
     console.log('Finished copying bathrooms!');

@@ -53,9 +53,6 @@ export function useBathrooms(options?: {
       setIsLoading(true);
       setError(null);
       
-      console.log('=== DEBUG: Loading Bathrooms ===');
-      console.log('Current location:', options?.location);
-      
       const bathroomsData = await getBathroomsInBounds({
         ne: { 
           lat: 49.0, // North enough to cover Seattle
@@ -68,14 +65,11 @@ export function useBathrooms(options?: {
       });
       
       if (!bathroomsData || bathroomsData.length === 0) {
-        console.log('No bathrooms data received');
+        console.log('No bathrooms found in bounds');
         setBathrooms([]);
         setIsLoading(false);
         return;
       }
-
-      console.log('Received raw bathrooms data:', bathroomsData.length, 'bathrooms');
-      console.log('Sample bathroom data:', bathroomsData[0]);
 
       const validBathrooms = bathroomsData
         .filter(isBathroom)
@@ -91,10 +85,7 @@ export function useBathrooms(options?: {
           requiresKey: !!bathroom.requiresKey,
         }));
 
-      console.log('Processed valid bathrooms:', validBathrooms.length);
-      if (validBathrooms.length > 0) {
-        console.log('Sample processed bathroom:', validBathrooms[0]);
-      }
+      console.log(`Loaded ${validBathrooms.length} bathrooms`);
 
       isInitialLoadDone = true;
       cachedBathrooms = validBathrooms;
@@ -102,7 +93,6 @@ export function useBathrooms(options?: {
     } catch (error) {
       console.error('Error loading bathrooms:', error);
       if (error instanceof Error) {
-        console.error('Error details:', error.message);
         setError(error.message);
       } else {
         setError('Failed to load bathrooms');

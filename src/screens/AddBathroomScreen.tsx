@@ -14,8 +14,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HoursSelector, WeeklyHours } from '../components/HoursSelector';
+import { RateLimitAlert } from '../components/RateLimitAlert';
 import { SUPPORTED_CITIES } from '../config/cities';
 import { addBathroom } from '../services/firebase';
+import { canSubmitBathroom, getRemainingCooldownSeconds, showCooldownAlert, updateLastSubmissionTime } from '../utils/cooldown';
 import { isLocationWithinCityBounds } from '../utils/locationUtils';
 
 export const AddBathroomScreen: React.FC = () => {
@@ -33,6 +35,8 @@ export const AddBathroomScreen: React.FC = () => {
   const [hasChangingTables, setHasChangingTables] = useState(false);
   const [requiresKey, setRequiresKey] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rateLimitError, setRateLimitError] = useState<string>('');
+  const [rateLimitTime, setRateLimitTime] = useState<number>(0);
 
   const formatHoursForDisplay = () => {
     if (!weeklyHours) return '';
@@ -52,8 +56,17 @@ export const AddBathroomScreen: React.FC = () => {
       return;
     }
 
+    // Check cooldown before proceeding
+    const canSubmit = await canSubmitBathroom();
+    if (!canSubmit) {
+      const remainingSeconds = await getRemainingCooldownSeconds();
+      showCooldownAlert(remainingSeconds);
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+      setRateLimitError('');
       
       const bathroomData = {
         name: name.trim(),
@@ -72,19 +85,25 @@ export const AddBathroomScreen: React.FC = () => {
       const cityId = determineCityId(latitude, longitude);
       await addBathroom(bathroomData, cityId);
 
+      // Update cooldown timestamp after successful submission
+      await updateLastSubmissionTime();
+
       Alert.alert(
-        'Thank You!',
-        'Your contribution helps people with Crohn\'s disease, Ulcerative Colitis, IBS, and those with unexpected urgent needs. Together, we\'re making bathrooms more accessible for everyone!',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.push('/home')
-          }
-        ]
+        'Success',
+        'Bathroom added successfully! It will be reviewed before appearing on the map.',
+        [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
-      console.error('Error adding bathroom:', error);
-      Alert.alert('Error', 'Failed to add bathroom. Please try again.');
+      if (error instanceof Error && error.message.includes('Rate limit')) {
+        setRateLimitError(error.message);
+        // Extract remaining time from error message if available
+        const timeMatch = error.message.match(/wait (\d+) seconds/);
+        if (timeMatch) {
+          setRateLimitTime(parseInt(timeMatch[1], 10));
+        }
+      } else {
+        Alert.alert('Error', 'Failed to add bathroom. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -93,6 +112,12 @@ export const AddBathroomScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {rateLimitError && (
+          <RateLimitAlert 
+            message={rateLimitError}
+            remainingTime={rateLimitTime}
+          />
+        )}
         <View style={styles.formGroup}>
           <Text style={styles.label}>Name *</Text>
           <TextInput

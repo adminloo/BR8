@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { Bathroom, Review } from '../types/index';
+import { sanitizeText, validateReview } from '../utils/validation';
 
 // Since we can't use GeoFirestore directly with the new Firebase modular SDK,
 // let's implement our own geospatial queries
@@ -26,18 +27,14 @@ export async function getBathroomsInBounds(bounds: {
     console.log('Bounds:', bounds);
 
     const bathroomsRef = collection(db, 'bathrooms');
-    const bathroomsQuery = query(
-      bathroomsRef,
-      where('latitude', '>=', bounds.sw.lat),
-      where('latitude', '<=', bounds.ne.lat)
-    );
     
+    // Simplified query - just get all bathrooms first
     console.log('Executing Firestore query...');
-    const bathroomsSnapshot = await getDocs(bathroomsQuery);
-    console.log(`Found ${bathroomsSnapshot.size} bathrooms in latitude range`);
+    const bathroomsSnapshot = await getDocs(bathroomsRef);
+    console.log(`Found ${bathroomsSnapshot.size} total bathrooms`);
     
     if (bathroomsSnapshot.empty) {
-      console.log('No bathrooms found in the specified bounds');
+      console.log('No bathrooms found');
       return [];
     }
 
@@ -47,13 +44,15 @@ export async function getBathroomsInBounds(bounds: {
       ...doc.data(),
     } as Bathroom));
     
-    // Filter by longitude in memory
+    // Filter by bounds in memory
     const filteredBathrooms = bathrooms.filter(bathroom => 
+      bathroom.latitude >= bounds.sw.lat && 
+      bathroom.latitude <= bounds.ne.lat &&
       bathroom.longitude >= bounds.sw.lng && 
       bathroom.longitude <= bounds.ne.lng
     );
 
-    console.log('Total bathrooms after longitude filtering:', filteredBathrooms.length);
+    console.log('Total bathrooms after filtering:', filteredBathrooms.length);
     return filteredBathrooms;
   } catch (error) {
     console.error('Error getting bathrooms:', error);
@@ -124,7 +123,6 @@ async function addDefaultReview(bathroomId: string, cityPath: string) {
       bathroomId,
       rating: 3,
       comment: "Initial system rating",
-      isSystemGenerated: true
     });
   } catch (error) {
     console.error('Error adding default review:', error);
@@ -182,20 +180,39 @@ export async function addBathroom(bathroomData: Partial<Bathroom>, cityId: strin
 
 export async function addReview(reviewData: Omit<Review, 'id' | 'createdAt'>) {
   try {
+    // Validate and sanitize input
+    const validation = validateReview({
+      comment: reviewData.comment,
+      rating: reviewData.rating,
+      tags: reviewData.tags
+    });
+
+    if (!validation.isValid) {
+      throw new Error(`Invalid review: ${validation.errors.join(', ')}`);
+    }
+
+    // Sanitize the data
+    const sanitizedData = {
+      ...reviewData,
+      comment: sanitizeText(reviewData.comment),
+      tags: reviewData.tags?.map(tag => sanitizeText(tag))
+    };
+
     const db = getFirestore();
     const batch = writeBatch(db);
     
     // Add the review
     const reviewRef = doc(collection(db, 'reviews'));
+    const timestamp = serverTimestamp();
+    
     batch.set(reviewRef, {
-      ...reviewData,
-      bathroomId: reviewData.bathroomId,
-      createdAt: serverTimestamp(),
-      isSystemGenerated: reviewData.isSystemGenerated || false,
+      ...sanitizedData,
+      bathroomId: sanitizedData.bathroomId,
+      createdAt: timestamp
     });
 
     // Update the bathroom ratings
-    const bathroomRef = doc(db, 'bathrooms', reviewData.bathroomId);
+    const bathroomRef = doc(db, 'bathrooms', sanitizedData.bathroomId);
     
     // Use a transaction for the rating update
     await runTransaction(db, async (transaction) => {
@@ -206,12 +223,12 @@ export async function addReview(reviewData: Omit<Review, 'id' | 'createdAt'>) {
 
       const data = bathroomDoc.data();
       const newRatingCount = (data.ratingCount || 0) + 1;
-      const newTotalRating = (data.totalRating || 0) + reviewData.rating;
+      const newTotalRating = (data.totalRating || 0) + sanitizedData.rating;
 
       transaction.update(bathroomRef, {
         ratingCount: newRatingCount,
         totalRating: newTotalRating,
-        updatedAt: serverTimestamp(),
+        updatedAt: timestamp,
       });
     });
 
@@ -241,18 +258,20 @@ export async function getReviews(bathroomId: string): Promise<Review[]> {
     const snapshot = await getDocs(reviewsQuery);
     return snapshot.docs.map((doc) => {
       const data = doc.data();
-      let createdAt: Date;
+      let createdAt: Date | number;
 
       // Handle different timestamp formats
       if (data.createdAt?.toDate) {
         // Firestore Timestamp
         createdAt = data.createdAt.toDate();
       } else if (data.createdAt) {
-        // String timestamp
-        createdAt = new Date(data.createdAt);
+        // Unix timestamp
+        createdAt = typeof data.createdAt === 'number' ? 
+          data.createdAt : 
+          new Date(data.createdAt).getTime();
       } else {
-        // Fallback
-        createdAt = new Date();
+        // Fallback to current timestamp
+        createdAt = Date.now();
       }
 
       return {
@@ -261,8 +280,7 @@ export async function getReviews(bathroomId: string): Promise<Review[]> {
         rating: data.rating,
         comment: data.comment || '',
         createdAt,
-        tags: data.tags || [],
-        isSystemGenerated: data.isSystemGenerated || false,
+        tags: data.tags || []
       };
     });
   } catch (error) {

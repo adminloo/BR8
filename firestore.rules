@@ -2,9 +2,49 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access during development
+    // Rate limiting functions
+    function isRateLimited(deviceId) {
+      let rateLimitDoc = get(/databases/$(database)/documents/rateLimits/$(deviceId)).data;
+      return rateLimitDoc != null && 
+             rateLimitDoc.lastSubmission > (request.time - duration.value(90, 's'));
+    }
+
+    function getDeviceId() {
+      return request.resource.data.deviceId;
+    }
+
+    // Bathrooms collection
+    match /bathrooms/{bathroomId} {
+      allow read: if true;
+      allow create: if !isRateLimited(getDeviceId());
+      allow update: if !isRateLimited(getDeviceId()) &&
+        (request.resource.data.status == 'PENDING');
+      allow delete: if false; // Only through admin console
+    }
+
+    // Reviews
+    match /bathrooms/{bathroomId}/reviews/{reviewId} {
+      allow read: if true;
+      allow create: if !isRateLimited(getDeviceId());
+      allow update, delete: if false; // Reviews can't be modified once submitted
+    }
+
+    // Rate limits collection
+    match /rateLimits/{deviceId} {
+      allow read: if true;  // Allow read for rate limit checking
+      allow write: if true; // Allow write for updating rate limits
+    }
+
+    // Reports/Issues
+    match /reports/{reportId} {
+      allow read: if false; // Only through admin console
+      allow create: if !isRateLimited(getDeviceId());
+      allow update, delete: if false; // Only through admin console
+    }
+
+    // Default deny
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 } 
