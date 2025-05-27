@@ -17,7 +17,7 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.anonymous.BR5",
+      bundleIdentifier: "com.loo1.br8",
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "We need your location to find bathrooms near you",
         NSLocationAlwaysAndWhenInUseUsageDescription: "We need your location to find bathrooms near you and provide updates about nearby facilities",
@@ -37,7 +37,7 @@ export default {
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
-      package: "com.anonymous.BR5"
+      package: "com.loo1.br8"
     },
     web: {
       favicon: "./assets/favicon.png"
