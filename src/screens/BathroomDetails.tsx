@@ -18,17 +18,14 @@ import { AccessTypeInfo } from '../components/AccessTypeInfo';
 import { OperatingHoursSection } from '../components/OperatingHoursSection';
 import { PhotoGallery } from '../components/PhotoGallery';
 import { ReportModal } from '../components/ReportModal';
-import { convertTo24Hour, updateBathroomCache, useBathrooms } from '../hooks/useBathrooms';
-import { addReport, addReview, getBathroom, getReviews } from '../services/firebase';
+import { convertTo24Hour, useBathrooms } from '../hooks/useBathrooms';
+import { addReport, addReview, getReviews } from '../services/firebase';
 import type { Review } from '../types/index';
 import { isOpen } from '../utils/availability';
 
 export const BathroomDetailsScreen: React.FC = () => {
   const params = useLocalSearchParams();
   const bathroomId = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : '';
-  console.log('=== DEBUG: Bathroom Details Screen ===');
-  console.log('Params:', params);
-  console.log('Bathroom ID:', bathroomId);
   
   const router = useRouter();
   const { bathrooms, isLoading } = useBathrooms();
@@ -43,7 +40,24 @@ export const BathroomDetailsScreen: React.FC = () => {
   const [isCurrentlyOpen, setIsCurrentlyOpen] = useState(false);
   
   const bathroom = bathrooms.find(b => b.id === bathroomId);
-  console.log('Found bathroom:', bathroom);
+
+  const loadReviews = async () => {
+    try {
+      const fetchedReviews = await getReviews(bathroomId);
+      // Convert firebase Review type to our Review type
+      const processedReviews: Review[] = fetchedReviews.map(review => ({
+        id: review.id,
+        bathroomId: review.bathroomId,
+        rating: review.rating,
+        comment: review.comment || '',
+        createdAt: review.createdAt,
+        tags: review.tags || []
+      }));
+      setReviews(processedReviews);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+    }
+  };
 
   useEffect(() => {
     loadReviews();
@@ -51,41 +65,10 @@ export const BathroomDetailsScreen: React.FC = () => {
 
   useEffect(() => {
     if (bathroom) {
-      const now = new Date();
-      console.log('Selected bathroom details:', {
-        id: bathroom.id,
-        name: bathroom.name,
-        currentTime: {
-          hours: now.getHours(),
-          minutes: now.getMinutes(),
-          day: now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
-        },
-        hours: bathroom.hours,
-        isCurrentlyOpen: isOpen(bathroom)
-      });
+      const isCurrentlyOpen = isOpen(bathroom);
+      setIsCurrentlyOpen(isCurrentlyOpen);
     }
   }, [bathroom]);
-
-  const loadReviews = async () => {
-    try {
-      const [bathroomReviews, updatedBathroom] = await Promise.all([
-        getReviews(bathroomId),
-        getBathroom(bathroomId)
-      ]);
-      setReviews(bathroomReviews);
-      
-      // Update the bathroom in the cache with the latest data
-      if (updatedBathroom) {
-        const updatedBathrooms = bathrooms.map(b => 
-          b.id === bathroomId ? updatedBathroom : b
-        );
-        updateBathroomCache(updatedBathrooms);
-      }
-    } catch (error) {
-      console.error('Error loading reviews:', error);
-      Alert.alert('Error', 'Failed to load reviews');
-    }
-  };
 
   const handleSubmitReview = async () => {
     if (rating === 0) {
@@ -253,7 +236,6 @@ export const BathroomDetailsScreen: React.FC = () => {
               <OperatingHoursSection 
                 hours={(() => {
                   const hours = bathroom.hours;
-                  console.log('DEBUG - Hours data:', JSON.stringify(hours, null, 2));
                   if (!hours) return { isUnsure: true };
                   
                   if (typeof hours === 'string') {

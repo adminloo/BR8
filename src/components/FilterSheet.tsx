@@ -1,7 +1,16 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Animated, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { FilterOptions } from '../types';
+
+const DEFAULT_FILTERS: FilterOptions = {
+  minRating: 0,
+  maxDistance: 5000,
+  isOpenNow: false,
+  is24Hours: false,
+  isWheelchairAccessible: false,
+  hasChangingTables: false,
+};
 
 interface FilterSheetProps {
   isVisible: boolean;
@@ -18,6 +27,18 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
 }) => {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const { height } = Dimensions.get('window');
+  
+  // Temporary filter state
+  const [tempFilters, setTempFilters] = useState(filters);
+  const [wasReset, setWasReset] = useState(false);
+  
+  // Reset temp filters when sheet becomes visible
+  useEffect(() => {
+    if (isVisible) {
+      setTempFilters(filters);
+      setWasReset(false);
+    }
+  }, [isVisible, filters]);
   
   useEffect(() => {
     if (isVisible) {
@@ -37,18 +58,50 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
     }
   }, [isVisible]);
 
-  if (!isVisible) return null;
+  const handleFilterChange = useCallback((key: keyof FilterOptions, value: boolean | number) => {
+    setWasReset(false);
+    setTempFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  }, []);
 
-  const handleFilterChange = (key: keyof FilterOptions, value: boolean | number) => {
-    onFiltersChange({ ...filters, [key]: value });
-  };
+  const handleReset = useCallback(() => {
+    setTempFilters(DEFAULT_FILTERS);
+    setWasReset(true);
+  }, []);
+
+  const handleApply = useCallback(() => {
+    // Validate and apply all filters at once
+    const validatedFilters = {
+      ...tempFilters,
+      minRating: Math.max(0, Math.min(5, Number(tempFilters.minRating) || 0)),
+      maxDistance: Math.max(0, Number(tempFilters.maxDistance) || 5000),
+      isOpenNow: Boolean(tempFilters.isOpenNow),
+      is24Hours: Boolean(tempFilters.is24Hours),
+      isWheelchairAccessible: Boolean(tempFilters.isWheelchairAccessible),
+      hasChangingTables: Boolean(tempFilters.hasChangingTables),
+    };
+    onFiltersChange(validatedFilters);
+    onClose();
+  }, [tempFilters, onFiltersChange, onClose]);
+
+  const handleClose = useCallback(() => {
+    // If filters were reset but not applied, apply the reset when closing
+    if (wasReset) {
+      onFiltersChange(DEFAULT_FILTERS);
+    }
+    onClose();
+  }, [wasReset, onFiltersChange, onClose]);
+
+  if (!isVisible) return null;
 
   return (
     <View style={styles.overlay}>
       <TouchableOpacity 
         style={styles.backdrop} 
         activeOpacity={1} 
-        onPress={onClose}
+        onPress={handleClose}
       />
       <Animated.View 
         style={[
@@ -68,7 +121,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
           <Text style={styles.title}>Filters</Text>
           <TouchableOpacity 
             style={styles.closeButton}
-            onPress={onClose}
+            onPress={handleClose}
           >
             <Ionicons name="close" size={24} color="#007AFF" />
           </TouchableOpacity>
@@ -84,7 +137,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
                 onPress={() => handleFilterChange('minRating', star)}
               >
                 <Ionicons
-                  name={star <= filters.minRating ? 'star' : 'star-outline'}
+                  name={star <= tempFilters.minRating ? 'star' : 'star-outline'}
                   size={28}
                   color="#FFD700"
                 />
@@ -98,7 +151,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
           <View style={styles.switchContainer}>
             <Text style={styles.optionText}>Open Now</Text>
             <Switch
-              value={filters.isOpenNow}
+              value={tempFilters.isOpenNow}
               onValueChange={(value) => handleFilterChange('isOpenNow', value)}
               ios_backgroundColor="#E0E0E0"
             />
@@ -106,7 +159,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
           <View style={styles.switchContainer}>
             <Text style={styles.optionText}>24/7 Access</Text>
             <Switch
-              value={filters.is24Hours}
+              value={tempFilters.is24Hours}
               onValueChange={(value) => handleFilterChange('is24Hours', value)}
               ios_backgroundColor="#E0E0E0"
             />
@@ -118,7 +171,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
           <View style={styles.switchContainer}>
             <Text style={styles.optionText}>Wheelchair Accessible</Text>
             <Switch
-              value={filters.isWheelchairAccessible}
+              value={tempFilters.isWheelchairAccessible}
               onValueChange={(value) => handleFilterChange('isWheelchairAccessible', value)}
               ios_backgroundColor="#E0E0E0"
             />
@@ -126,7 +179,7 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
           <View style={styles.switchContainer}>
             <Text style={styles.optionText}>Changing Tables</Text>
             <Switch
-              value={filters.hasChangingTables}
+              value={tempFilters.hasChangingTables}
               onValueChange={(value) => handleFilterChange('hasChangingTables', value)}
               ios_backgroundColor="#E0E0E0"
             />
@@ -136,22 +189,13 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[styles.button, styles.resetButton]}
-            onPress={() =>
-              onFiltersChange({
-                minRating: 0,
-                maxDistance: 5000,
-                isOpenNow: false,
-                is24Hours: false,
-                isWheelchairAccessible: false,
-                hasChangingTables: false,
-              })
-            }
+            onPress={handleReset}
           >
             <Text style={styles.resetButtonText}>Reset</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.button, styles.applyButton]}
-            onPress={onClose}
+            onPress={handleApply}
           >
             <Text style={styles.applyButtonText}>Apply</Text>
           </TouchableOpacity>

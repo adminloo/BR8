@@ -15,7 +15,7 @@ export function updateBathroomCache(bathrooms: Bathroom[]) {
     const totalRating = bathroom.totalRating || 0;
     const calculatedAverage = ratingCount > 0 ? totalRating / ratingCount : 0;
     
-    const processed = {
+    return {
       ...bathroom,
       description: bathroom.description || '',
       ratingCount: ratingCount,
@@ -26,22 +26,11 @@ export function updateBathroomCache(bathrooms: Bathroom[]) {
       hasChangingTables: !!bathroom.hasChangingTables,
       requiresKey: !!bathroom.requiresKey,
     };
-    
-    console.log(`Processing bathroom ${bathroom.name} (${bathroom.id}):`, {
-      before: {
-        ratingCount: bathroom.ratingCount,
-        totalRating: bathroom.totalRating,
-        averageRating: bathroom.averageRating
-      },
-      after: {
-        ratingCount: processed.ratingCount,
-        totalRating: processed.totalRating,
-        averageRating: processed.averageRating
-      }
-    });
-    
-    return processed;
   });
+  
+  if (__DEV__) {
+    console.log(`Cache updated with ${processedBathrooms.length} bathrooms`);
+  }
   
   cachedBathrooms = processedBathrooms;
   isInitialLoadDone = true;
@@ -64,7 +53,9 @@ export function useBathrooms(options?: {
 
   const loadBathrooms = async () => {
     if (isInitialLoadDone && cachedBathrooms.length > 0) {
-      console.log('Using cached bathrooms:', cachedBathrooms.length);
+      if (__DEV__) {
+        console.log('Using cached bathrooms:', cachedBathrooms.length);
+      }
       setBathrooms(cachedBathrooms);
       setIsLoading(false);
       return;
@@ -86,7 +77,9 @@ export function useBathrooms(options?: {
       });
       
       if (!bathroomsData || bathroomsData.length === 0) {
-        console.log('No bathrooms found in bounds');
+        if (__DEV__) {
+          console.log('No bathrooms found in bounds');
+        }
         setBathrooms([]);
         setIsLoading(false);
         return;
@@ -112,7 +105,9 @@ export function useBathrooms(options?: {
           };
         });
 
-      console.log(`Loaded ${validBathrooms.length} bathrooms`);
+      if (__DEV__) {
+        console.log(`Loaded ${validBathrooms.length} bathrooms`);
+      }
 
       isInitialLoadDone = true;
       cachedBathrooms = validBathrooms;

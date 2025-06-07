@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { BathroomMarker } from '../src/components/BathroomMarker';
@@ -20,6 +20,8 @@ export default function HomeScreen() {
     isWheelchairAccessible: false,
     hasChangingTables: false,
   });
+  const lastFilterUpdate = useRef<number>(0);
+  const filterUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
   const mapRef = useRef<MapView>(null);
   const [initialRegion, setInitialRegion] = useState<Region>({
     latitude: 47.6062,
@@ -48,8 +50,90 @@ export default function HomeScreen() {
     })();
   }, []);
 
-  const renderMarker = (bathroom: Bathroom) => {
-    const rating = bathroom.averageRating || 0;
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (filterUpdateTimeout.current) {
+        clearTimeout(filterUpdateTimeout.current);
+      }
+    };
+  }, []);
+
+  const handleFiltersChange = useCallback((newFilters: typeof filters) => {
+    const now = Date.now();
+    
+    // Clear any pending timeout
+    if (filterUpdateTimeout.current) {
+      clearTimeout(filterUpdateTimeout.current);
+    }
+
+    // If updates are happening too quickly, delay the update
+    if (now - lastFilterUpdate.current < 100) {
+      filterUpdateTimeout.current = setTimeout(() => {
+        lastFilterUpdate.current = now;
+        // Validate the new filters before applying them
+        const validatedFilters = {
+          ...newFilters,
+          minRating: Math.max(0, Math.min(5, Number(newFilters.minRating) || 0)),
+          maxDistance: Math.max(0, Number(newFilters.maxDistance) || 5000),
+          isOpenNow: Boolean(newFilters.isOpenNow),
+          is24Hours: Boolean(newFilters.is24Hours),
+          isWheelchairAccessible: Boolean(newFilters.isWheelchairAccessible),
+          hasChangingTables: Boolean(newFilters.hasChangingTables),
+        };
+        setFilters(validatedFilters);
+      }, 100);
+      return;
+    }
+
+    // Otherwise, update immediately
+    lastFilterUpdate.current = now;
+    const validatedFilters = {
+      ...newFilters,
+      minRating: Math.max(0, Math.min(5, Number(newFilters.minRating) || 0)),
+      maxDistance: Math.max(0, Number(newFilters.maxDistance) || 5000),
+      isOpenNow: Boolean(newFilters.isOpenNow),
+      is24Hours: Boolean(newFilters.is24Hours),
+      isWheelchairAccessible: Boolean(newFilters.isWheelchairAccessible),
+      hasChangingTables: Boolean(newFilters.hasChangingTables),
+    };
+    setFilters(validatedFilters);
+  }, []);
+
+  const getFilteredBathrooms = useCallback(() => {
+    if (!bathrooms) return [];
+    
+    // If no filters are active, return all bathrooms
+    const hasActiveFilters = 
+      filters.isOpenNow ||
+      filters.isWheelchairAccessible ||
+      filters.hasChangingTables ||
+      filters.minRating > 0;
+
+    if (!hasActiveFilters) return bathrooms;
+
+    // Apply filters if any are active
+    return bathrooms.filter(bathroom => {
+      try {
+        // Safely check properties with default values if undefined
+        const isAccessible = bathroom.isAccessible ?? false;
+        const hasChangingTables = bathroom.hasChangingTables ?? false;
+        const averageRating = bathroom.averageRating ?? 0;
+        
+        if (filters.minRating > 0 && averageRating < filters.minRating) return false;
+        if (filters.isOpenNow && !isOpen(bathroom)) return false;
+        if (filters.isWheelchairAccessible && !isAccessible) return false;
+        if (filters.hasChangingTables && !hasChangingTables) return false;
+        
+        return true;
+      } catch (error) {
+        console.error('Error filtering bathroom:', bathroom.name, error);
+        return false;
+      }
+    });
+  }, [bathrooms, filters]);
+
+  const renderMarker = useCallback((bathroom: Bathroom) => {
     return (
       <Marker
         key={`${bathroom.id}-${isLoading}`}
@@ -67,61 +151,15 @@ export default function HomeScreen() {
         }}
       >
         <BathroomMarker 
-          rating={rating} 
+          rating={bathroom.averageRating || 0} 
           isOpen={isOpen(bathroom)} 
         />
       </Marker>
     );
-  };
+  }, [isLoading, router]);
 
   const onRegionChangeComplete = (region: Region) => {
     setCurrentRegion(region);
-  };
-
-  const getFilteredBathrooms = () => {
-    if (!bathrooms) return [];
-    
-    // If no filters are active, return all bathrooms
-    const hasActiveFilters = 
-      filters.isOpenNow ||
-      filters.isWheelchairAccessible ||
-      filters.hasChangingTables ||
-      filters.minRating > 0;
-
-    if (!hasActiveFilters) return bathrooms;
-
-    // Apply filters if any are active
-    const filtered = bathrooms.filter(bathroom => {
-      try {
-        // Safely check properties with default values if undefined
-        const isAccessible = bathroom.isAccessible ?? false;
-        const hasChangingTables = bathroom.hasChangingTables ?? false;
-        const averageRating = bathroom.averageRating ?? 0;
-        
-        if (filters.minRating > 0) {
-          console.log(`Bathroom ${bathroom.name} (${bathroom.id}):`, {
-            ratingCount: bathroom.ratingCount,
-            totalRating: bathroom.totalRating,
-            averageRating: bathroom.averageRating,
-            calculatedAverage: bathroom.totalRating / bathroom.ratingCount
-          });
-          if (averageRating < filters.minRating) return false;
-        }
-        
-        if (filters.isOpenNow && !isOpen(bathroom)) return false;
-        if (filters.isWheelchairAccessible && !isAccessible) return false;
-        if (filters.hasChangingTables && !hasChangingTables) return false;
-        
-        return true;
-      } catch (error) {
-        console.error('Error filtering bathroom:', bathroom.name, error);
-        return false;
-      }
-    });
-
-    // Only log the summary of filtered results
-    console.log(`Filtered bathrooms: ${filtered.length} of ${bathrooms.length}`);
-    return filtered;
   };
 
   return (
@@ -175,7 +213,7 @@ export default function HomeScreen() {
           isVisible={isFilterVisible}
           onClose={() => setIsFilterVisible(false)}
           filters={filters}
-          onFiltersChange={setFilters}
+          onFiltersChange={handleFiltersChange}
         />
       </View>
     </View>

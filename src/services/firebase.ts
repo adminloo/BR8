@@ -31,46 +31,45 @@ export async function getBathroomsInBounds(bounds: {
   ne: { lat: number; lng: number };
   sw: { lat: number; lng: number };
 }) {
-  try {
+  if (__DEV__) {
     console.log('=== DEBUG: Fetching bathrooms in bounds ===');
     console.log('Bounds:', bounds);
+  }
 
+  try {
     const bathroomsRef = collection(db, 'bathrooms');
-    
-    // Simplified query - just get all bathrooms first
-    console.log('Executing Firestore query...');
-    const bathroomsSnapshot = await getDocs(bathroomsRef);
-    console.log(`Found ${bathroomsSnapshot.size} total bathrooms`);
-    
-    if (bathroomsSnapshot.empty) {
-      console.log('No bathrooms found');
-      return [];
-    }
-
-    // Map and filter results
-    const bathrooms = bathroomsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    } as Bathroom));
-    
-    // Filter by bounds in memory
-    const filteredBathrooms = bathrooms.filter(bathroom => 
-      bathroom.latitude >= bounds.sw.lat && 
-      bathroom.latitude <= bounds.ne.lat &&
-      bathroom.longitude >= bounds.sw.lng && 
-      bathroom.longitude <= bounds.ne.lng
+    const q = query(
+      bathroomsRef,
+      where('latitude', '<=', bounds.ne.lat),
+      where('latitude', '>=', bounds.sw.lat)
     );
 
-    console.log('Total bathrooms after filtering:', filteredBathrooms.length);
-    return filteredBathrooms;
-  } catch (error) {
-    console.error('Error getting bathrooms:', error);
-    if (error instanceof Error) {
-      console.error('Error details:', error.message);
-      if ('code' in error) {
-        console.error('Error code:', (error as any).code);
-      }
+    if (__DEV__) {
+      console.log('Executing Firestore query...');
     }
+
+    const querySnapshot = await getDocs(q);
+    const bathrooms = querySnapshot.docs
+      .map(doc => {
+        const data = doc.data() as Omit<Bathroom, 'id'>;
+        return {
+          ...data,
+          id: doc.id
+        };
+      })
+      .filter(bathroom => 
+        bathroom.longitude >= bounds.sw.lng && 
+        bathroom.longitude <= bounds.ne.lng
+      );
+
+    if (__DEV__) {
+      console.log(`Found ${querySnapshot.docs.length} total bathrooms`);
+      console.log(`Total bathrooms after filtering: ${bathrooms.length}`);
+    }
+
+    return bathrooms;
+  } catch (error) {
+    console.error('Error fetching bathrooms:', error);
     throw error;
   }
 }
