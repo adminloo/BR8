@@ -1,4 +1,4 @@
-package com.anonymous.BR5
+package com.loo1.br8
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

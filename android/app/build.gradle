@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.BR5'
+    namespace 'com.loo1.br8'
     defaultConfig {
-        applicationId 'com.anonymous.BR5'
+        applicationId 'com.loo1.br8'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

@@ -18,8 +18,8 @@ import { AccessTypeInfo } from '../components/AccessTypeInfo';
 import { OperatingHoursSection } from '../components/OperatingHoursSection';
 import { PhotoGallery } from '../components/PhotoGallery';
 import { ReportModal } from '../components/ReportModal';
-import { convertTo24Hour, useBathrooms } from '../hooks/useBathrooms';
-import { addReport, addReview, getReviews } from '../services/firebase';
+import { convertTo24Hour, updateBathroomCache, useBathrooms } from '../hooks/useBathrooms';
+import { addReport, addReview, getBathroom, getReviews } from '../services/firebase';
 import type { Review } from '../types/index';
 import { isOpen } from '../utils/availability';
 
@@ -68,8 +68,19 @@ export const BathroomDetailsScreen: React.FC = () => {
 
   const loadReviews = async () => {
     try {
-      const bathroomReviews = await getReviews(bathroomId);
+      const [bathroomReviews, updatedBathroom] = await Promise.all([
+        getReviews(bathroomId),
+        getBathroom(bathroomId)
+      ]);
       setReviews(bathroomReviews);
+      
+      // Update the bathroom in the cache with the latest data
+      if (updatedBathroom) {
+        const updatedBathrooms = bathrooms.map(b => 
+          b.id === bathroomId ? updatedBathroom : b
+        );
+        updateBathroomCache(updatedBathrooms);
+      }
     } catch (error) {
       console.error('Error loading reviews:', error);
       Alert.alert('Error', 'Failed to load reviews');

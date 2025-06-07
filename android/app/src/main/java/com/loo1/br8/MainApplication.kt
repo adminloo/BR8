@@ -1,4 +1,4 @@
-package com.anonymous.BR5
+package com.loo1.br8
 
 import android.app.Application
 import android.content.res.Configuration

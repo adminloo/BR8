@@ -2,6 +2,7 @@ import {
     addDoc,
     collection,
     doc,
+    getDoc,
     getDocs,
     getFirestore,
     orderBy,
@@ -9,12 +10,20 @@ import {
     runTransaction,
     serverTimestamp,
     setDoc,
-    where,
-    writeBatch
+    where
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { Bathroom, Review } from '../types/index';
+import type { Bathroom } from '../types';
 import { sanitizeText, validateReview } from '../utils/validation';
+
+export interface Review {
+  id: string;
+  bathroomId: string;
+  rating: number;
+  comment?: string;
+  createdAt: Date | number;
+  tags?: string[];
+}
 
 // Since we can't use GeoFirestore directly with the new Firebase modular SDK,
 // let's implement our own geospatial queries
@@ -199,24 +208,23 @@ export async function addReview(reviewData: Omit<Review, 'id' | 'createdAt'>) {
     };
 
     const db = getFirestore();
-    const batch = writeBatch(db);
     
-    // Add the review
-    const reviewRef = doc(collection(db, 'reviews'));
-    const timestamp = serverTimestamp();
-    
-    batch.set(reviewRef, {
-      ...sanitizedData,
-      bathroomId: sanitizedData.bathroomId,
-      createdAt: timestamp
-    });
-
-    // Update the bathroom ratings
-    const bathroomRef = doc(db, 'bathrooms', sanitizedData.bathroomId);
-    
-    // Use a transaction for the rating update
+    // Add the review and update bathroom in a transaction
     await runTransaction(db, async (transaction) => {
+      // Add the review
+      const reviewRef = doc(collection(db, 'reviews'));
+      const timestamp = serverTimestamp();
+      
+      transaction.set(reviewRef, {
+        ...sanitizedData,
+        bathroomId: sanitizedData.bathroomId,
+        createdAt: timestamp
+      });
+
+      // Update the bathroom ratings
+      const bathroomRef = doc(db, 'bathrooms', sanitizedData.bathroomId);
       const bathroomDoc = await transaction.get(bathroomRef);
+      
       if (!bathroomDoc.exists()) {
         throw new Error('Bathroom not found');
       }
@@ -224,16 +232,17 @@ export async function addReview(reviewData: Omit<Review, 'id' | 'createdAt'>) {
       const data = bathroomDoc.data();
       const newRatingCount = (data.ratingCount || 0) + 1;
       const newTotalRating = (data.totalRating || 0) + sanitizedData.rating;
+      const newAverageRating = newTotalRating / newRatingCount;
 
       transaction.update(bathroomRef, {
         ratingCount: newRatingCount,
         totalRating: newTotalRating,
-        updatedAt: timestamp,
+        averageRating: newAverageRating,
+        updatedAt: timestamp
       });
-    });
 
-    await batch.commit();
-    return reviewRef.id;
+      return reviewRef.id;
+    });
   } catch (error) {
     console.error('Error adding review:', error);
     throw error;
@@ -301,4 +310,43 @@ export const addReport = async (report: {
     status: 'PENDING',
     createdAt: serverTimestamp(),
   });
-}; 
+};
+
+export async function getBathroom(bathroomId: string): Promise<Bathroom | null> {
+  try {
+    const bathroomRef = doc(db, 'bathrooms', bathroomId);
+    const bathroomDoc = await getDoc(bathroomRef);
+    
+    if (!bathroomDoc.exists()) {
+      return null;
+    }
+    
+    const data = bathroomDoc.data();
+    const ratingCount = data.ratingCount || 0;
+    const totalRating = data.totalRating || 0;
+    const calculatedAverage = ratingCount > 0 ? totalRating / ratingCount : 0;
+    
+    return {
+      id: bathroomDoc.id,
+      name: data.name || '',
+      description: data.description || '',
+      latitude: data.latitude || 0,
+      longitude: data.longitude || 0,
+      isAccessible: !!data.isAccessible,
+      hasChangingTables: !!data.hasChangingTables,
+      requiresKey: !!data.requiresKey,
+      source: data.source || 'user-submitted',
+      ratingCount: ratingCount,
+      totalRating: totalRating,
+      averageRating: calculatedAverage,
+      hours: data.hours,
+      address: data.address,
+      status: data.status,
+      cityId: data.cityId,
+      photos: data.photos,
+    };
+  } catch (error) {
+    console.error('Error getting bathroom:', error);
+    throw error;
+  }
+} 

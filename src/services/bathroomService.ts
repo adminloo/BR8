@@ -1,6 +1,24 @@
-import { addDoc, arrayUnion, collection, doc, getDoc, getDocs, increment, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
+import {
+    addDoc,
+    arrayUnion,
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    getFirestore,
+    increment,
+    query,
+    runTransaction,
+    serverTimestamp,
+    setDoc,
+    updateDoc,
+    where,
+    writeBatch
+} from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getDeviceId } from '../utils/ipHash';
+import { CircuitBreaker, withTimeoutAndRetry } from '../utils/networkUtils';
+import { sanitizeText, validateBathroomData, validateReport, validateReview } from '../utils/validation';
 
 export interface NewBathroomData {
   name: string;
@@ -29,6 +47,41 @@ export interface BathroomDocument extends NewBathroomData {
     reasons: string[];
   };
 }
+
+export interface Review {
+  id: string;
+  bathroomId: string;
+  rating: number;
+  comment?: string;
+  createdAt: Date | number;
+  tags?: string[];
+}
+
+// Function to generate the next bathroom ID
+async function getNextBathroomId(db: any): Promise<string> {
+  const pendingRef = collection(db, 'pendingBathrooms');
+  const q = query(pendingRef, where('id', '>=', '425'), where('id', '<', '426'));
+  const snapshot = await getDocs(q);
+  
+  // Find the highest number after 425
+  let maxNum = 0;
+  snapshot.docs.forEach(doc => {
+    const id = doc.id;
+    if (id.startsWith('425')) {
+      const num = parseInt(id.substring(3));
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+      }
+    }
+  });
+  
+  return `425${maxNum + 1}`;
+}
+
+// Create circuit breakers for different operations
+const addBathroomCircuitBreaker = new CircuitBreaker();
+const addReviewCircuitBreaker = new CircuitBreaker();
+const addReportCircuitBreaker = new CircuitBreaker();
 
 export class BathroomService {
   static async checkRateLimit(): Promise<boolean> {
@@ -67,68 +120,54 @@ export class BathroomService {
   }
 
   static async addBathroom(cityId: string, data: NewBathroomData) {
-    try {
-      console.log('\n=== RATE LIMIT CHECK START ===');
-      const deviceId = await getDeviceId();
-      console.log('📱 Device:', deviceId.substring(0, 8) + '...');
-      
-      // Check rate limit first
-      const rateLimitRef = doc(db, 'rateLimits', deviceId);
-      const rateLimitDoc = await getDoc(rateLimitRef);
-      
-      const now = new Date();
-      if (rateLimitDoc.exists()) {
-        const data = rateLimitDoc.data();
-        if (data.lastSubmission) {
-          const lastSubmission = data.lastSubmission.toDate();
-          const timeDiff = (now.getTime() - lastSubmission.getTime()) / 1000;
-          console.log('⏱️ Time since last submission:', Math.round(timeDiff), 'seconds');
-          
-          if (timeDiff < 90) {
-            const waitTime = Math.ceil(90 - timeDiff);
-            console.log('🚫 Rate limit active. Wait time:', waitTime, 'seconds');
-            console.log('=== RATE LIMIT CHECK END ===\n');
-            throw new Error(`Rate limit exceeded. Please wait ${waitTime} seconds before submitting.`);
+    return addBathroomCircuitBreaker.execute(async () => {
+      return await withTimeoutAndRetry(async () => {
+        try {
+          // Validate input data
+          const validation = validateBathroomData(data);
+          if (!validation.isValid) {
+            throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
           }
+
+          // Sanitize text inputs
+          const sanitizedData = {
+            ...data,
+            name: sanitizeText(data.name),
+            address: sanitizeText(data.address),
+            description: sanitizeText(data.description),
+            submitterNotes: sanitizeText(data.submitterNotes),
+            businessType: sanitizeText(data.businessType)
+          };
+
+          // Check rate limit
+          await this.checkRateLimit();
+
+          const deviceId = await getDeviceId();
+          
+          // Add the bathroom with sanitized data
+          const bathroomRef = collection(db, 'bathrooms');
+          const newId = await getNextBathroomId(db);
+          
+          const bathRoomWithMetadata = {
+            ...sanitizedData,
+            id: newId,
+            cityId,
+            status: 'PENDING',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            deviceId
+          };
+
+          const docRef = doc(bathroomRef, newId);
+          await setDoc(docRef, bathRoomWithMetadata);
+          
+          return newId;
+        } catch (error) {
+          console.error('Error adding bathroom:', error);
+          throw error;
         }
-      } else {
-        console.log('✨ First submission for this device');
-      }
-
-      console.log('✅ Rate limit check passed');
-      console.log('=== RATE LIMIT CHECK END ===\n');
-
-      // Update rate limit first and wait for it to complete
-      await setDoc(rateLimitRef, {
-        deviceId,
-        lastSubmission: serverTimestamp(),
-        lastUpdated: serverTimestamp()
       });
-
-      // Wait a moment to ensure the rate limit document is properly saved
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Then add the bathroom with deviceId
-      const bathroomRef = collection(db, 'bathrooms');
-      const docRef = await addDoc(bathroomRef, {
-        ...data,
-        deviceId,
-        cityId,
-        source: 'user-submitted',
-        verificationStatus: 'pending',
-        createdAt: serverTimestamp(),
-        lastVerified: null,
-        googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${data.latitude},${data.longitude}`
-      });
-
-      return docRef;
-    } catch (error) {
-      console.error('Error in addBathroom:', error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to add bathroom');
-    }
+    });
   }
 
   static async getBathrooms(cityId: string, options?: {
@@ -175,5 +214,110 @@ export class BathroomService {
 
   static async getVerifiedBathrooms(cityId: string) {
     return this.getBathrooms(cityId, { verificationStatus: 'verified' });
+  }
+
+  static async addReview(reviewData: Omit<Review, 'id' | 'createdAt'>) {
+    return addReviewCircuitBreaker.execute(async () => {
+      return await withTimeoutAndRetry(async () => {
+        try {
+          // Validate review data
+          const validation = validateReview({
+            comment: reviewData.comment,
+            rating: reviewData.rating,
+            tags: reviewData.tags
+          });
+
+          if (!validation.isValid) {
+            throw new Error(`Invalid review: ${validation.errors.join(', ')}`);
+          }
+
+          // Sanitize the data
+          const sanitizedData = {
+            ...reviewData,
+            comment: sanitizeText(reviewData.comment),
+            tags: reviewData.tags?.map(tag => sanitizeText(tag))
+          };
+
+          // Check rate limit
+          await this.checkRateLimit();
+
+          const db = getFirestore();
+          const batch = writeBatch(db);
+          
+          // Add the review
+          const reviewRef = doc(collection(db, 'reviews'));
+          const timestamp = serverTimestamp();
+          
+          batch.set(reviewRef, {
+            ...sanitizedData,
+            bathroomId: sanitizedData.bathroomId,
+            createdAt: timestamp
+          });
+
+          // Update the bathroom ratings
+          const bathroomRef = doc(db, 'bathrooms', sanitizedData.bathroomId);
+          
+          await runTransaction(db, async (transaction) => {
+            const bathroomDoc = await transaction.get(bathroomRef);
+            if (!bathroomDoc.exists()) {
+              throw new Error('Bathroom not found');
+            }
+
+            const data = bathroomDoc.data();
+            const newRatingCount = (data.ratingCount || 0) + 1;
+            const newTotalRating = (data.totalRating || 0) + sanitizedData.rating;
+
+            transaction.update(bathroomRef, {
+              ratingCount: newRatingCount,
+              totalRating: newTotalRating,
+              updatedAt: timestamp,
+            });
+          });
+
+          await batch.commit();
+          return reviewRef.id;
+        } catch (error) {
+          console.error('Error adding review:', error);
+          throw error;
+        }
+      });
+    });
+  }
+
+  static async addReport(report: {
+    bathroomId: string;
+    type: string;
+    details: string;
+  }) {
+    return addReportCircuitBreaker.execute(async () => {
+      return await withTimeoutAndRetry(async () => {
+        try {
+          // Validate report data
+          const validation = validateReport(report);
+          if (!validation.isValid) {
+            throw new Error(`Invalid report: ${validation.errors.join(', ')}`);
+          }
+
+          // Sanitize the data
+          const sanitizedData = {
+            ...report,
+            details: sanitizeText(report.details)
+          };
+
+          // Check rate limit
+          await this.checkRateLimit();
+
+          const reportsRef = collection(db, 'reports');
+          await addDoc(reportsRef, {
+            ...sanitizedData,
+            status: 'PENDING',
+            createdAt: serverTimestamp(),
+          });
+        } catch (error) {
+          console.error('Error adding report:', error);
+          throw error;
+        }
+      });
+    });
   }
 } 

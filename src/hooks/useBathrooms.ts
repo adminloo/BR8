@@ -10,17 +10,38 @@ let isInitialLoadDone = false;
 // Function to update the cache externally (used by App.tsx)
 export function updateBathroomCache(bathrooms: Bathroom[]) {
   // Process bathrooms to ensure they match our expected format
-  const processedBathrooms = bathrooms.map(bathroom => ({
-    ...bathroom,
-    description: bathroom.description || '',
-    averageRating: bathroom.averageRating || 0,
-    ratingCount: bathroom.ratingCount || 0,
-    totalRating: bathroom.totalRating || 0,
-    source: bathroom.source || 'user-submitted',
-    isAccessible: !!bathroom.isAccessible,
-    hasChangingTables: !!bathroom.hasChangingTables,
-    requiresKey: !!bathroom.requiresKey,
-  }));
+  const processedBathrooms = bathrooms.map(bathroom => {
+    const ratingCount = bathroom.ratingCount || 0;
+    const totalRating = bathroom.totalRating || 0;
+    const calculatedAverage = ratingCount > 0 ? totalRating / ratingCount : 0;
+    
+    const processed = {
+      ...bathroom,
+      description: bathroom.description || '',
+      ratingCount: ratingCount,
+      totalRating: totalRating,
+      averageRating: calculatedAverage,
+      source: bathroom.source || 'user-submitted',
+      isAccessible: !!bathroom.isAccessible,
+      hasChangingTables: !!bathroom.hasChangingTables,
+      requiresKey: !!bathroom.requiresKey,
+    };
+    
+    console.log(`Processing bathroom ${bathroom.name} (${bathroom.id}):`, {
+      before: {
+        ratingCount: bathroom.ratingCount,
+        totalRating: bathroom.totalRating,
+        averageRating: bathroom.averageRating
+      },
+      after: {
+        ratingCount: processed.ratingCount,
+        totalRating: processed.totalRating,
+        averageRating: processed.averageRating
+      }
+    });
+    
+    return processed;
+  });
   
   cachedBathrooms = processedBathrooms;
   isInitialLoadDone = true;
@@ -73,17 +94,23 @@ export function useBathrooms(options?: {
 
       const validBathrooms = bathroomsData
         .filter(isBathroom)
-        .map(bathroom => ({
-          ...bathroom,
-          description: bathroom.description || '',
-          averageRating: bathroom.averageRating || 0,
-          ratingCount: bathroom.ratingCount || 0,
-          totalRating: bathroom.totalRating || 0,
-          source: bathroom.source || 'user-submitted',
-          isAccessible: !!bathroom.isAccessible,
-          hasChangingTables: !!bathroom.hasChangingTables,
-          requiresKey: !!bathroom.requiresKey,
-        }));
+        .map(bathroom => {
+          const ratingCount = bathroom.ratingCount || 0;
+          const totalRating = bathroom.totalRating || 0;
+          const calculatedAverage = ratingCount > 0 ? totalRating / ratingCount : 0;
+          
+          return {
+            ...bathroom,
+            description: bathroom.description || '',
+            ratingCount: ratingCount,
+            totalRating: totalRating,
+            averageRating: calculatedAverage,
+            source: bathroom.source || 'user-submitted',
+            isAccessible: !!bathroom.isAccessible,
+            hasChangingTables: !!bathroom.hasChangingTables,
+            requiresKey: !!bathroom.requiresKey,
+          };
+        });
 
       console.log(`Loaded ${validBathrooms.length} bathrooms`);
 
