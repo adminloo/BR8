@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { IconSymbol } from '../../components/ui/IconSymbol';
 
 interface BathroomMarkerProps {
   rating: number;
@@ -20,9 +20,9 @@ export const BathroomMarker: React.FC<BathroomMarkerProps> = ({ rating, isOpen }
   return (
     <View style={styles.container}>
       <View style={[styles.marker, { backgroundColor: color }]}>
-        <Ionicons 
-          name="water" 
-          size={10} 
+        <IconSymbol 
+          name="toilet.fill" 
+          size={18} 
           color="white" 
         />
       </View>
@@ -34,14 +34,14 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 24,
-    height: 24,
+    width: 28,
+    height: 28,
     position: 'relative',
   },
   marker: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -57,8 +57,8 @@ const styles = StyleSheet.create({
     top: '50%',
     left: '50%',
     transform: [
-      { translateX: -10 },
-      { translateY: -10 }
+      { translateX: -12 },
+      { translateY: -12 }
     ],
   },
 }); 

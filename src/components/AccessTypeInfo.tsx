@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { IconSymbol } from '../../components/ui/IconSymbol';
 
 interface Props {
   isAccessible: boolean;
@@ -17,13 +18,13 @@ export const AccessTypeInfo: React.FC<Props> = ({
     <View style={styles.container}>
       {isAccessible && (
         <View style={styles.item}>
-          <Ionicons name="accessibility" size={24} color="#007AFF" />
+          <IconSymbol name="figure.roll" size={24} color="#007AFF" />
           <Text style={styles.text}>Wheelchair Accessible</Text>
         </View>
       )}
       {hasChangingTables && (
         <View style={styles.item}>
-          <Ionicons name="person" size={24} color="#007AFF" />
+          <IconSymbol name="figure.and.child.holdinghands" size={24} color="#007AFF" />
           <Text style={styles.text}>Changing Tables</Text>
         </View>
       )}
