@@ -47,12 +47,16 @@ function isDayHours(value: any): value is DayHours {
   return value && typeof value === 'object' && 'open' in value && 'close' in value && 'isClosed' in value;
 }
 
-function isWeeklyHours(hours: ScheduleHours | WeeklyHours | undefined | null): hours is WeeklyHours {
-  return !!hours && typeof hours === 'object' && 'monday' in hours;
+function isWeeklyHours(hours: any): hours is WeeklyHours {
+  return hours && typeof hours === 'object' && 
+    'monday' in hours && 'tuesday' in hours && 'wednesday' in hours &&
+    'thursday' in hours && 'friday' in hours && 'saturday' in hours && 'sunday' in hours;
 }
 
-function isScheduleHours(hours: ScheduleHours | WeeklyHours | undefined | null): hours is ScheduleHours {
-  return !!hours && typeof hours === 'object' && ('schedule' in hours || 'is24_7' in hours || 'isUnsure' in hours);
+function isScheduleHours(hours: any): hours is ScheduleHours {
+  return hours && typeof hours === 'object' && 
+    ('schedule' in hours || 'is24_7' in hours || 'isUnsure' in hours) &&
+    !isWeeklyHours(hours); // Add this check to prevent overlap
 }
 
 function normalizeTimeFormat(timeStr: string): string {
@@ -162,12 +166,10 @@ export function isOpen(bathroom: Bathroom): boolean {
 
           if (closeTimeMinutes < openTimeMinutes) {
             // Handle overnight hours
-            const isOpen = currentTime >= openTimeMinutes || currentTime <= closeTimeMinutes;
-            return isOpen;
+            return currentTime >= openTimeMinutes || currentTime <= closeTimeMinutes;
           }
 
-          const isOpen = currentTime >= openTimeMinutes && currentTime <= closeTimeMinutes;
-          return isOpen;
+          return currentTime >= openTimeMinutes && currentTime <= closeTimeMinutes;
         }
       }
       return false;
@@ -177,7 +179,7 @@ export function isOpen(bathroom: Bathroom): boolean {
     }
   }
 
-  // Handle 24/7 case
+  // Handle schedule format
   if (isScheduleHours(bathroom.hours)) {
     if (bathroom.hours.is24_7 === true) {
       return true;
@@ -208,12 +210,10 @@ export function isOpen(bathroom: Bathroom): boolean {
 
         if (closeTimeMinutes < openTimeMinutes) {
           // Handle overnight hours
-          const isOpen = currentTime >= openTimeMinutes || currentTime <= closeTimeMinutes;
-          return isOpen;
+          return currentTime >= openTimeMinutes || currentTime <= closeTimeMinutes;
         }
 
-        const isOpen = currentTime >= openTimeMinutes && currentTime <= closeTimeMinutes;
-        return isOpen;
+        return currentTime >= openTimeMinutes && currentTime <= closeTimeMinutes;
       } catch (e) {
         console.error('Error parsing schedule hours:', e);
         return false;
@@ -237,32 +237,28 @@ export function isOpen(bathroom: Bathroom): boolean {
     const currentMinute = now.getMinutes();
     const currentTime = currentHour * 60 + currentMinute;
 
-    const dayHours = bathroom.hours[currentDay as keyof WeeklyHours];
+    const dayHours = bathroom.hours[currentDay];
 
-    if (!dayHours || !isDayHours(dayHours)) {
-      return false;
-    }
-    if (dayHours.isClosed) {
+    if (!dayHours || dayHours.isClosed) {
       return false;
     }
     
     try {
-      const [openHours, openMinutes] = (dayHours.open || '').split(':').map(Number);
-      const [closeHours, closeMinutes] = (dayHours.close || '').split(':').map(Number);
+      const [openHours, openMinutes] = dayHours.open.split(':').map(Number);
+      const [closeHours, closeMinutes] = dayHours.close.split(':').map(Number);
       
       const openTime = openHours * 60 + openMinutes;
       const closeTime = closeHours * 60 + closeMinutes;
 
+      // Handle overnight hours
       if (closeTime < openTime) {
-        // Handle overnight hours
-        const isOpen = currentTime >= openTime || currentTime <= closeTime;
-        return isOpen;
+        return currentTime >= openTime || currentTime <= closeTime;
       }
 
-      const isOpen = currentTime >= openTime && currentTime <= closeTime;
-      return isOpen;
+      // Regular hours comparison
+      return currentTime >= openTime && currentTime <= closeTime;
     } catch (e) {
-      console.error('Error parsing hours:', e);
+      console.error('Error parsing weekly hours:', e);
       return false;
     }
   }
