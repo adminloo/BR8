@@ -43,3 +43,5 @@ yarn-error.*
 # Firebase config files
 GoogleService-Info.plist
 google-services.json
+
+# Make sure to keep GoogleService-Info.plist in ios/BR5/ directory locally
