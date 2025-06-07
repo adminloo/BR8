@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { Animated, Dimensions, StyleSheet, View } from 'react-native';
@@ -13,6 +14,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
   const textFadeAnim = React.useRef(new Animated.Value(0)).current;
+  const versionFadeAnim = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Start animations when component mounts
@@ -31,12 +33,19 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           useNativeDriver: true,
         }),
       ]),
-      // Start pulsing animation
-      Animated.timing(textFadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
+      // Start pulsing animation and fade in text
+      Animated.parallel([
+        Animated.timing(textFadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(versionFadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start();
 
     // Create a continuous pulsing effect
@@ -69,6 +78,11 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           duration: 300,
           useNativeDriver: true,
         }),
+        Animated.timing(versionFadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
       ]).start(() => {
         // Call the onFinish callback when animations complete
         onFinish();
@@ -76,7 +90,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [fadeAnim, scaleAnim, pulseAnim, textFadeAnim, onFinish]);
+  }, [fadeAnim, scaleAnim, pulseAnim, textFadeAnim, versionFadeAnim, onFinish]);
 
   return (
     <View style={styles.container}>
@@ -103,6 +117,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       >
         Finding restrooms near you...
       </Animated.Text>
+      <Animated.Text
+        style={[
+          styles.versionText,
+          { opacity: versionFadeAnim }
+        ]}
+      >
+        Version {Constants.expoConfig?.version || '1.0.0'}
+      </Animated.Text>
     </View>
   );
 };
@@ -127,5 +149,13 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     marginTop: 20,
     opacity: 0.8,
+  },
+  versionText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '400',
+    opacity: 0.6,
+    position: 'absolute',
+    bottom: 40,
   }
 }); 

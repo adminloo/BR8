@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "BR5",
-    "slug": "BR5",
+    "name": "Loo",
+    "slug": "Loo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "scheme": "br5",
+    "scheme": "loo",
     "splash": {
       "image": "./assets/LooLogoStart.png",
       "resizeMode": "contain",
@@ -63,6 +63,9 @@
       "eas": {
         "projectId": "2bedda58-809d-4d93-acf4-243bc7b7f4b4"
       }
-    }
+    },
+    "owner": "loo1",
+    "privacy": "public",
+    "privacyPolicyUrl": "https://www.loo1.com/privacy-policy"
   }
 }
