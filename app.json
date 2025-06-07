@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "scheme": "loo",
     "splash": {
-      "image": "./assets/LooLogoStart.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -44,7 +44,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/LooLogoStart.png",
+          "image": "./assets/splash.png",
           "resizeMode": "contain",
           "backgroundColor": "#000000"
         }
