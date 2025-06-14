@@ -3,8 +3,8 @@ import { FirebaseError } from 'firebase/app';
 /**
  * Default timeout values (in milliseconds)
  */
-const DEFAULT_TIMEOUT = 15000; // 15 seconds
-const MAX_RETRIES = 3;
+const DEFAULT_TIMEOUT = 30000; // 30 seconds
+const MAX_RETRIES = 5;
 const RETRY_DELAY = 1000; // 1 second
 
 /**
@@ -43,7 +43,14 @@ export const withTimeoutAndRetry = async <T>(
   const {
     timeoutMs = DEFAULT_TIMEOUT,
     maxRetries = MAX_RETRIES,
-    retryableErrors = ['network-request-failed', 'deadline-exceeded']
+    retryableErrors = [
+      'network-request-failed',
+      'deadline-exceeded',
+      'unavailable',
+      'resource-exhausted',
+      'internal',
+      'unknown'
+    ]
   } = options;
 
   let lastError: Error | null = null;

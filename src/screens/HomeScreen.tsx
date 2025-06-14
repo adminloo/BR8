@@ -1,3 +1,4 @@
+asdfasdf
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -67,7 +68,10 @@ export const HomeScreen: React.FC = () => {
           latitude: bathroom.latitude,
           longitude: bathroom.longitude,
         }}
-        onPress={() => router.push({ pathname: '/bathroom-details', params: { bathroomId: bathroom.id } })}
+        onPress={() => router.push({
+          pathname: '/bathroom-details/[id]',
+          params: { id: bathroom.id }
+        })}
       >
         <BathroomMarker 
           rating={rating} 
@@ -140,7 +144,7 @@ export const HomeScreen: React.FC = () => {
         onPress={() => router.push('/select-location')}
       >
         <Ionicons name="add" size={24} color="white" style={styles.addIcon} />
-        <Text style={styles.addButtonText}>Add Bathroom</Text>
+        <Text style={styles.addButtonText}>HELLO FROM DEV BUILD</Text>
       </TouchableOpacity>
 
       <FilterSheet

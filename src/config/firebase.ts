@@ -6,6 +6,22 @@ import { Platform } from 'react-native';
 // Load environment variables
 const env = Constants.expoConfig?.extra?.env || {};
 
+// Validate required environment variables
+const requiredEnvVars = [
+  'FIREBASE_API_KEY',
+  'FIREBASE_PROJECT_ID',
+  'FIREBASE_STORAGE_BUCKET',
+  'FIREBASE_AUTH_DOMAIN',
+  'FIREBASE_MESSAGING_SENDER_ID',
+  'FIREBASE_DATABASE_URL'
+];
+
+const missingVars = requiredEnvVars.filter(varName => !env[varName]);
+if (missingVars.length > 0) {
+  console.error('Missing required Firebase environment variables:', missingVars);
+  throw new Error('Missing required Firebase environment variables');
+}
+
 const firebaseConfig = {
   apiKey: env.FIREBASE_API_KEY,
   projectId: env.FIREBASE_PROJECT_ID,
@@ -25,9 +41,13 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firestore with settings
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: true, // This helps with React Native compatibility
+  cacheSizeBytes: 50 * 1024 * 1024, // 50MB cache size
 });
 
-// Production mode logging
-console.log('Running in production mode with project:', firebaseConfig.projectId);
+// Log configuration
+console.log('Firebase initialized with project:', firebaseConfig.projectId);
+console.log('Environment:', env.ENVIRONMENT || 'production');
+console.log('Platform:', Platform.OS);
+console.log('Using production database');
 
 export { db };

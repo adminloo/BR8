@@ -2,14 +2,14 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: "BR5",
-    slug: "BR5",
-    version: "1.0.0",
+    name: "BR8",
+    slug: "BR8",
+    version: "1.0.1",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
-    scheme: "br5",
+    scheme: "br8",
     splash: {
       image: "./assets/LooLogoStart.png",
       resizeMode: "contain",
@@ -71,10 +71,7 @@ export default {
         FIREBASE_IOS_APP_ID: process.env.FIREBASE_IOS_APP_ID,
         FIREBASE_ANDROID_APP_ID: process.env.FIREBASE_ANDROID_APP_ID,
         FIREBASE_DATABASE_URL: process.env.FIREBASE_DATABASE_URL,
-        ENVIRONMENT: process.env.ENVIRONMENT,
-        FIRESTORE_EMULATOR_HOST: "10.0.0.99:9199",
-        FIREBASE_EMULATOR_HOST: "10.0.0.99",
-        FIREBASE_AUTH_EMULATOR_HOST: "10.0.0.99:9099"
+        ENVIRONMENT: process.env.ENVIRONMENT
       },
       eas: {
         projectId: "2bedda58-809d-4d93-acf4-243bc7b7f4b4"

@@ -1,3 +1,4 @@
+import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 import { getBathroomsInBounds } from '../services/firebase';
 import type { Bathroom } from '../types';
@@ -65,14 +66,28 @@ export function useBathrooms(options?: {
       setIsLoading(true);
       setError(null);
       
+      // Get current location
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        throw new Error('Location permission not granted');
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const currentLat = location.coords.latitude;
+      const currentLng = location.coords.longitude;
+      
+      // Calculate bounds around current location (roughly 10km radius)
+      const latRange = 0.1; // approximately 10km
+      const lngRange = 0.1 / Math.cos(currentLat * Math.PI / 180);
+      
       const bathroomsData = await getBathroomsInBounds({
         ne: { 
-          lat: 49.0, // North enough to cover Seattle
-          lng: -122.0  // Adjusted for Seattle area
+          lat: currentLat + latRange,
+          lng: currentLng + lngRange
         },
         sw: { 
-          lat: 47.0,  // Adjusted for Seattle area
-          lng: -123.0 // West enough to cover Seattle
+          lat: currentLat - latRange,
+          lng: currentLng - lngRange
         }
       });
       
