@@ -74,7 +74,7 @@ export default {
         ENVIRONMENT: process.env.ENVIRONMENT
       },
       eas: {
-        projectId: "2bedda58-809d-4d93-acf4-243bc7b7f4b4"
+        projectId: "f4ed7a7b-5c2e-46aa-8043-88a8e8d12add"
       }
     }
   }
