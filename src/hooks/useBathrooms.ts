@@ -48,6 +48,9 @@ export function useBathrooms(options?: {
     longitude: number;
   };
 }) {
+  if (!options || !options.location) {
+    console.warn('useBathrooms called without location. Will load all bathrooms.');
+  }
   console.log('useBathrooms hook called', options);
   const [bathrooms, setBathrooms] = useState<Bathroom[]>(cachedBathrooms);
   const [isLoading, setIsLoading] = useState(!isInitialLoadDone);
