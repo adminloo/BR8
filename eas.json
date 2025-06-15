@@ -12,8 +12,8 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "envFile": ".env"
+      "autoIncrement": true
+
     }
   },
   "submit": {
