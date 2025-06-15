@@ -1,4 +1,3 @@
-import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 import { getBathroomsInBounds } from '../services/firebase';
 import type { Bathroom } from '../types';
@@ -48,69 +47,33 @@ export function useBathrooms(options?: {
     longitude: number;
   };
 }) {
-  if (!options || !options.location) {
-    console.warn('useBathrooms called without location. Will load all bathrooms.');
-  }
-  console.log('useBathrooms hook called', options);
   const [bathrooms, setBathrooms] = useState<Bathroom[]>(cachedBathrooms);
   const [isLoading, setIsLoading] = useState(!isInitialLoadDone);
   const [error, setError] = useState<string | null>(null);
 
+  // Washington state bounding box (approximate)
+  const WA_BOUNDS = {
+    ne: { lat: 49.0024, lng: -116.9165 }, // Northeast corner
+    sw: { lat: 45.5435, lng: -124.8489 }, // Southwest corner
+  };
+
   const loadBathrooms = async () => {
-    if (isInitialLoadDone && cachedBathrooms.length > 0) {
-      if (__DEV__) {
-        console.log('Using cached bathrooms:', cachedBathrooms.length);
-      }
-      setBathrooms(cachedBathrooms);
-      setIsLoading(false);
-      return;
-    }
-
+    setIsLoading(true);
+    setError(null);
     try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Get current location
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        throw new Error('Location permission not granted');
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      const currentLat = location.coords.latitude;
-      const currentLng = location.coords.longitude;
-      
-      // Calculate bounds around current location (roughly 10km radius)
-      const latRange = 0.1; // approximately 10km
-      const lngRange = 0.1 / Math.cos(currentLat * Math.PI / 180);
-      
-      const bathroomsData = await getBathroomsInBounds({
-        ne: { 
-          lat: currentLat + latRange,
-          lng: currentLng + lngRange
-        },
-        sw: { 
-          lat: currentLat - latRange,
-          lng: currentLng - lngRange
-        }
-      });
-      
+      // Always fetch all bathrooms in WA
+      const bathroomsData = await getBathroomsInBounds(WA_BOUNDS);
       if (!bathroomsData || bathroomsData.length === 0) {
-        if (__DEV__) {
-          console.log('No bathrooms found in bounds');
-        }
         setBathrooms([]);
         setIsLoading(false);
         return;
       }
-
       const validBathrooms = bathroomsData
         .filter(isBathroom)
         .map(bathroom => {
           const ratingCount = bathroom.ratingCount || 0;
           const totalRating = bathroom.totalRating || 0;
           const calculatedAverage = ratingCount > 0 ? totalRating / ratingCount : 0;
-          
           return {
             ...bathroom,
             description: bathroom.description || '',
@@ -123,28 +86,18 @@ export function useBathrooms(options?: {
             requiresKey: !!bathroom.requiresKey,
           };
         });
-
-      if (__DEV__) {
-        console.log(`Loaded ${validBathrooms.length} bathrooms`);
-      }
-
       isInitialLoadDone = true;
       cachedBathrooms = validBathrooms;
       setBathrooms(validBathrooms);
     } catch (error) {
       console.error('Error loading bathrooms:', error);
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError('Failed to load bathrooms');
-      }
+      setError('Failed to load bathrooms. Please try again.');
       setBathrooms([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Load bathrooms on mount only if not already loaded
   useEffect(() => {
     if (!isInitialLoadDone) {
       loadBathrooms();
@@ -152,9 +105,9 @@ export function useBathrooms(options?: {
       setBathrooms(cachedBathrooms);
       setIsLoading(false);
     }
-  }, []); // Empty dependency array means this only runs once on mount
+  }, []);
 
-  // Filter bathrooms by location if provided
+  // If a location is provided (e.g., from map movement), filter bathrooms by 10km radius
   const filteredBathrooms = options?.location
     ? bathrooms.filter(bathroom => {
         const distance = getDistance(
@@ -163,15 +116,15 @@ export function useBathrooms(options?: {
           bathroom.latitude,
           bathroom.longitude
         );
-        return distance <= 10; // Show bathrooms within 10km
+        return distance <= 10;
       })
     : bathrooms;
 
-  return { 
+  return {
     bathrooms: filteredBathrooms,
-    isLoading, 
+    isLoading,
     error,
-    reloadBathrooms: loadBathrooms
+    reloadBathrooms: loadBathrooms,
   };
 }
 

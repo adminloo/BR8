@@ -81,6 +81,11 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={{ position: 'absolute', top: 10, left: 0, right: 0, zIndex: 1000, alignItems: 'center' }}>
+        <TouchableOpacity onPress={() => router.push('/debug-config')}>
+          <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#007AFF' }}>Loo</Text>
+        </TouchableOpacity>
+      </View>
       <MapView
         ref={mapRef}
         style={styles.map}

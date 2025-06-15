@@ -49,5 +49,7 @@ console.log('Firebase initialized with project:', firebaseConfig.projectId);
 console.log('Environment:', env.ENVIRONMENT || 'production');
 console.log('Platform:', Platform.OS);
 console.log('Using production database');
+console.log('Firebase config at runtime:', firebaseConfig);
+console.log('Env at runtime:', env);
 
 export { db };
