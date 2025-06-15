@@ -4,7 +4,7 @@ export default {
   expo: {
     name: "BR8",
     slug: "BR8",
-    version: "1.0.2",
+    version: "1.0.3",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
