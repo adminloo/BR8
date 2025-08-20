@@ -34,8 +34,12 @@ export interface Bathroom {
   };
   createdAt?: any;
   updatedAt?: any;
+  verifiedAt?: any;
   cityId?: string;
   photos?: string[];
+  // New fields for safe approval process
+  publicId?: number;
+  sourcePendingId?: string;
 }
 
 export interface Review {
