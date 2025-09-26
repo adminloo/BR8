@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "Loo",
-    "slug": "Loo",
-    "version": "1.0.0",
+    "name": "BR8",
+    "slug": "BR8",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "scheme": "loo",
+    "scheme": "br8",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/LooLogoStart.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -44,7 +44,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash.png",
+          "image": "./assets/LooLogoStart.png",
           "resizeMode": "contain",
           "backgroundColor": "#000000"
         }
@@ -58,14 +58,6 @@
           "isIosBackgroundLocationEnabled": true
         }
       ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "2bedda58-809d-4d93-acf4-243bc7b7f4b4"
-      }
-    },
-    "owner": "loo1",
-    "privacy": "public",
-    "privacyPolicyUrl": "https://www.loo1.com/privacy-policy"
+    ]
   }
 }

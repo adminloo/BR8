@@ -1,18 +1,5 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  getFirestore,
-  orderBy,
-  query,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where
-} from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc, where } from '@firebase/firestore';
 import { db } from '../config/firebase';
 import type { Bathroom } from '../types';
 import { sanitizeText, validateReview } from '../utils/validation';
