@@ -9,10 +9,9 @@ module.exports = (() => {
     ...config,
     resolver: {
       ...config.resolver,
-      assetExts: [...assetExts, 'png', 'jpg', 'jpeg', 'gif'],
+      assetExts: assetExts,
       resolverMainFields: ['react-native', 'browser', 'main'],
       platforms: ['ios', 'android', 'web'],
-      sourceExts: ['js', 'jsx', 'json', 'ts', 'tsx', 'cjs'],
       extraNodeModules: {
         '@radix-ui/react-slot': path.resolve(__dirname, 'node_modules/@radix-ui/react-slot'),
         '@radix-ui/react-compose-refs': path.resolve(__dirname, 'node_modules/@radix-ui/react-compose-refs')
