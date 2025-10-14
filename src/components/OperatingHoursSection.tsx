@@ -192,9 +192,9 @@ export const OperatingHoursSection: React.FC<Props> = ({ hours, onStatusChange }
         <View style={styles.headerRight}>
           <Text style={[
             styles.statusText,
-            isCurrentlyOpen ? styles.openText : styles.closedText
+            hasUnverifiedHours ? styles.unknownText : (isCurrentlyOpen ? styles.openText : styles.closedText)
           ]}>
-            {isCurrentlyOpen ? 'Open' : 'Closed'}
+            {hasUnverifiedHours ? 'Unknown' : (isCurrentlyOpen ? 'Open' : 'Closed')}
           </Text>
         </View>
       </View>
@@ -295,6 +295,10 @@ const styles = StyleSheet.create({
   closedText: {
     color: '#FF3B30',
     backgroundColor: '#FF3B3015',
+  },
+  unknownText: {
+    color: '#666666',
+    backgroundColor: '#66666615',
   },
   viewAllButton: {
     flexDirection: 'row',

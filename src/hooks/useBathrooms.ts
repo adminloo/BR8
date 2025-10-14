@@ -165,26 +165,65 @@ function mapBathroomData(data: any): Bathroom {
               const [day, timeRange] = dayHour.split(': ');
               if (!timeRange) return;
               
-              const [openTime, closeTime] = timeRange.split(' to ');
-              if (!openTime || !closeTime) return;
+              // Check if it's "Open 24 hours"
+              const trimmedTimeRange = timeRange.trim();
+              console.log(`Processing time range for ${data.name} - ${day}:`, trimmedTimeRange);
               
-              const open = convertTo24Hour(openTime);
-              const close = convertTo24Hour(closeTime);
-              
-              if (!open || !close) {
-                console.error('Failed to convert time for day:', day, 'open:', openTime, 'close:', closeTime);
-                return;
+              if (trimmedTimeRange === 'Open 24 hours') {
+                console.log(`${data.name} - ${day} is Open 24 hours`);
+                schedule[day.toLowerCase()] = {
+                  open: '00:00',
+                  close: '24:00'
+                };
+              } else {
+                console.log(`${data.name} - ${day} has regular hours:`, trimmedTimeRange);
+                const [openTime, closeTime] = timeRange.split(' to ');
+                if (!openTime || !closeTime) return;
+                
+                const open = convertTo24Hour(openTime);
+                const close = convertTo24Hour(closeTime);
+                
+                if (!open || !close) {
+                  console.error('Failed to convert time for day:', day, 'open:', openTime, 'close:', closeTime);
+                  return;
+                }
+                
+                schedule[day.toLowerCase()] = { 
+                  open: open,
+                  close: close
+                };
               }
-              
-              schedule[day.toLowerCase()] = { 
-                open: open,
-                close: close
-              };
             });
             
             if (Object.keys(schedule).length > 0) {
-              hours = { schedule };
-              console.log('Parsed schedule:', schedule);
+              // Check if all days are set to "Open 24 hours"
+              const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+              
+              // First check if all days are present
+              const allDaysPresent = days.every(day => schedule[day.toLowerCase()]);
+              console.log(`${data.name} - All days present in schedule:`, allDaysPresent);
+
+              if (allDaysPresent) {
+                // Then check if all days are 24 hours
+                const allDays24Hours = days.every(day => {
+                  const daySchedule = schedule[day.toLowerCase()];
+                  const is24Hours = daySchedule.open === '00:00' && daySchedule.close === '24:00';
+                  console.log(`${data.name} - ${day}:`, daySchedule, 'is24Hours:', is24Hours);
+                  return is24Hours;
+                });
+
+                if (allDays24Hours) {
+                  hours = { is24_7: true };
+                  console.log(`${data.name} - Setting 24/7 flag: all days are 24 hours`);
+                } else {
+                  hours = { schedule };
+                  console.log(`${data.name} - Using schedule: not all days are 24 hours`);
+                }
+              } else {
+                hours = { schedule };
+                console.log(`${data.name} - Using schedule: missing some days`);
+              }
+              console.log('Final hours for', data.name, ':', hours);
             } else {
               console.error('No valid schedule entries were parsed');
               hours = { isUnsure: true };

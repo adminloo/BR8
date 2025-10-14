@@ -17,10 +17,14 @@ export const HomeScreen: React.FC = () => {
     minRating: 0,
     maxDistance: 5000,
     isOpenNow: false,
-    is24Hours: false,
     isWheelchairAccessible: false,
     hasChangingTables: false,
   });
+
+  // Debug when filters change
+  useEffect(() => {
+    console.log('Filters updated:', filters);
+  }, [filters]);
 
   const mapRef = useRef<MapView>(null);
   const [initialRegion, setInitialRegion] = useState<Region>({
@@ -30,8 +34,46 @@ export const HomeScreen: React.FC = () => {
     longitudeDelta: 0.0421,
   });
 
-  const { bathrooms, isLoading, error } = useBathrooms();
-  console.log('HomeScreen bathrooms:', bathrooms, 'isLoading:', isLoading, 'error:', error);
+  const { bathrooms: allBathrooms, isLoading, error } = useBathrooms();
+  
+  // Apply filters to bathrooms
+  const bathrooms = React.useMemo(() => {
+    console.log('STARTING FILTER WITH:', filters);
+    
+    if (!allBathrooms) return [];
+    
+
+    const filtered = allBathrooms.filter(bathroom => {
+      
+      // Then check other filters
+      if (filters.isOpenNow) {
+        const isCurrentlyOpen = isOpen(bathroom);
+        console.log('Is currently open:', isCurrentlyOpen);
+        if (!isCurrentlyOpen) {
+          console.log(`${bathroom.name} filtered out - not open now`);
+          return false;
+        }
+      }
+
+      if (filters.isWheelchairAccessible && !bathroom.isAccessible) {
+        console.log(`${bathroom.name} filtered out - not wheelchair accessible`);
+        return false;
+      }
+      if (filters.hasChangingTables && !bathroom.hasChangingTables) {
+        console.log(`${bathroom.name} filtered out - no changing tables`);
+        return false;
+      }
+      if (filters.minRating > 0 && bathroom.averageRating < filters.minRating) {
+        console.log(`${bathroom.name} filtered out - rating too low`);
+        return false;
+      }
+      
+      console.log(`${bathroom.name} INCLUDED in results`);
+      return true;
+    });
+    console.log('Total bathrooms after filtering:', filtered.length);
+    return filtered;
+  }, [allBathrooms, filters]); // Make sure filters is in dependency array
   const router = useRouter();
 
   useEffect(() => {
@@ -102,18 +144,7 @@ export const HomeScreen: React.FC = () => {
         loadingBackgroundColor="#eeeeee"
         moveOnMarkerPress={false}
       >
-        {!isLoading && bathrooms && bathrooms
-          .filter(bathroom => {
-            if (filters.isOpenNow) {
-              const isCurrentlyOpen = isOpen(bathroom);
-              if (!isCurrentlyOpen) return false;
-            }
-            if (filters.isWheelchairAccessible && !bathroom.isAccessible) return false;
-            if (filters.hasChangingTables && !bathroom.hasChangingTables) return false;
-            if (filters.minRating > 0 && bathroom.averageRating < filters.minRating) return false;
-            return true;
-          })
-          .map(renderMarker)}
+        {!isLoading && bathrooms && bathrooms.map(renderMarker)}
       </MapView>
 
       <View 

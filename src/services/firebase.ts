@@ -1,5 +1,5 @@
-import { getFirestore } from 'firebase/firestore';
 import { addDoc, collection, doc, getDoc, getDocs, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc, where } from '@firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { Bathroom } from '../types';
 import { sanitizeText, validateReview } from '../utils/validation';
@@ -40,6 +40,7 @@ export async function getBathroomsInBounds(bounds: {
     const bathrooms = querySnapshot.docs
       .map(doc => {
         const data = doc.data() as Omit<Bathroom, 'id'>;
+        console.log('Raw bathroom data from Firebase:', data.name, data.hours);
         return {
           ...data,
           id: doc.id
@@ -373,17 +374,7 @@ export async function addReview(reviewData: Omit<Review, 'id' | 'createdAt'>) {
     
     // Add the review and update bathroom in a transaction
     await runTransaction(db, async (transaction) => {
-      // Add the review
-      const reviewRef = doc(collection(db, 'reviews'));
-      const timestamp = serverTimestamp();
-      
-      transaction.set(reviewRef, {
-        ...sanitizedData,
-        bathroomId: sanitizedData.bathroomId,
-        createdAt: timestamp
-      });
-
-      // Update the bathroom ratings
+      // First, get the bathroom document
       const bathroomRef = doc(db, 'bathrooms', sanitizedData.bathroomId);
       const bathroomDoc = await transaction.get(bathroomRef);
       
@@ -391,10 +382,22 @@ export async function addReview(reviewData: Omit<Review, 'id' | 'createdAt'>) {
         throw new Error('Bathroom not found');
       }
 
+      // Create review reference
+      const reviewRef = doc(collection(db, 'reviews'));
+      const timestamp = serverTimestamp();
+
+      // Calculate new ratings
       const data = bathroomDoc.data();
       const newRatingCount = (data.ratingCount || 0) + 1;
       const newTotalRating = (data.totalRating || 0) + sanitizedData.rating;
       const newAverageRating = newTotalRating / newRatingCount;
+
+      // Now perform the writes after all reads are complete
+      transaction.set(reviewRef, {
+        ...sanitizedData,
+        bathroomId: sanitizedData.bathroomId,
+        createdAt: timestamp
+      });
 
       transaction.update(bathroomRef, {
         ratingCount: newRatingCount,

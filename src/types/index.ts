@@ -7,7 +7,6 @@ export type FilterOptions = {
   minRating: number;
   maxDistance: number;
   isOpenNow: boolean;
-  is24Hours: boolean;
   isWheelchairAccessible: boolean;
   hasChangingTables: boolean;
 };

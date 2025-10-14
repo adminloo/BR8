@@ -13,7 +13,10 @@ install! 'cocoapods',
 
 prepare_react_native_project!
 
-target 'BR5' do
+# Add version overrides for problematic pods
+pod 'fast_float', '6.1.4'
+
+target 'BR8' do
   use_expo_modules!
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'

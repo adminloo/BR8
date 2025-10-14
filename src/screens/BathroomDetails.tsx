@@ -21,7 +21,7 @@ import { ReportModal } from '../components/ReportModal';
 import { convertTo24Hour, useBathrooms } from '../hooks/useBathrooms';
 import { addReport, addReview, getReviews } from '../services/firebase';
 import type { Review } from '../types/index';
-import { isOpen } from '../utils/availability';
+import { hasVerifiedHours, isOpen } from '../utils/availability';
 
 export const BathroomDetailsScreen: React.FC = () => {
   const params = useLocalSearchParams();
@@ -163,7 +163,7 @@ export const BathroomDetailsScreen: React.FC = () => {
           ]} />
           <View>
             <Text style={styles.statusText}>
-              {isCurrentlyOpen ? 'Open Now' : 'Closed'}
+              {!bathroom || !hasVerifiedHours(bathroom) ? 'Unknown' : (isCurrentlyOpen ? 'Open Now' : 'Closed')}
             </Text>
           </View>
         </View>

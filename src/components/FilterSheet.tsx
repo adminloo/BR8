@@ -7,7 +7,6 @@ const DEFAULT_FILTERS: FilterOptions = {
   minRating: 0,
   maxDistance: 5000,
   isOpenNow: false,
-  is24Hours: false,
   isWheelchairAccessible: false,
   hasChangingTables: false,
 };
@@ -59,12 +58,26 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
   }, [isVisible]);
 
   const handleFilterChange = useCallback((key: keyof FilterOptions, value: boolean | number) => {
+    console.log(`\n=== FILTER CHANGE REQUESTED ===`);
+    console.log(`Filter: ${key}`);
+    console.log(`New value: ${value}`);
+    console.log(`Current filters:`, tempFilters);
+    
     setWasReset(false);
-    setTempFilters(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  }, []);
+    setTempFilters(prev => {
+      const newFilters = {
+        ...prev,
+        [key]: value
+      };
+      console.log('Updated filters will be:', newFilters);
+      return newFilters;
+    });
+  }, [tempFilters]);
+
+  // Debug temp filters
+  useEffect(() => {
+    console.log('Temporary filters:', tempFilters);
+  }, [tempFilters]);
 
   const handleReset = useCallback(() => {
     setTempFilters(DEFAULT_FILTERS);
@@ -72,16 +85,25 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
   }, []);
 
   const handleApply = useCallback(() => {
-    // Validate and apply all filters at once
+    console.log('\n=== APPLYING FILTERS ===');
+    console.log('Current temp filters:', JSON.stringify(tempFilters, null, 2));
+    
+    // Force all boolean filters to be strictly true/false
     const validatedFilters = {
       ...tempFilters,
       minRating: Math.max(0, Math.min(5, Number(tempFilters.minRating) || 0)),
       maxDistance: Math.max(0, Number(tempFilters.maxDistance) || 5000),
-      isOpenNow: Boolean(tempFilters.isOpenNow),
-      is24Hours: Boolean(tempFilters.is24Hours),
-      isWheelchairAccessible: Boolean(tempFilters.isWheelchairAccessible),
-      hasChangingTables: Boolean(tempFilters.hasChangingTables),
+      // Force strict boolean values
+      isOpenNow: tempFilters.isOpenNow === true,
+      is24Hours: tempFilters.is24Hours === true,
+      isWheelchairAccessible: tempFilters.isWheelchairAccessible === true,
+      hasChangingTables: tempFilters.hasChangingTables === true,
     };
+    
+    console.log('Validated filters:', JSON.stringify(validatedFilters, null, 2));
+    console.log('24/7 filter is:', validatedFilters.is24Hours ? 'ON' : 'OFF');
+    
+    // Apply the filters
     onFiltersChange(validatedFilters);
     onClose();
   }, [tempFilters, onFiltersChange, onClose]);
@@ -153,14 +175,6 @@ export const FilterSheet: React.FC<FilterSheetProps> = ({
             <Switch
               value={tempFilters.isOpenNow}
               onValueChange={(value) => handleFilterChange('isOpenNow', value)}
-              ios_backgroundColor="#E0E0E0"
-            />
-          </View>
-          <View style={styles.switchContainer}>
-            <Text style={styles.optionText}>24/7 Access</Text>
-            <Switch
-              value={tempFilters.is24Hours}
-              onValueChange={(value) => handleFilterChange('is24Hours', value)}
               ios_backgroundColor="#E0E0E0"
             />
           </View>

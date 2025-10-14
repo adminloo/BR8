@@ -115,8 +115,15 @@ function parseTimeString(timeStr: string): { hours: number, minutes: number } {
   }
 }
 
+export function hasVerifiedHours(bathroom: Bathroom): boolean {
+  if (!bathroom?.hours) return false;
+  if (isScheduleHours(bathroom.hours) && bathroom.hours.isUnsure) return false;
+  if (isWeeklyHours(bathroom.hours) && bathroom.hours.isUnsure) return false;
+  return true;
+}
+
 export function isOpen(bathroom: Bathroom): boolean {
-  if (!bathroom?.hours) {
+  if (!bathroom?.hours || !hasVerifiedHours(bathroom)) {
     return false;
   }
 
@@ -271,6 +278,13 @@ export function getAvailabilityStatus(bathroom: Bathroom): {
   nextOpenTime?: string;
   message: string;
 } {
+  if (!hasVerifiedHours(bathroom)) {
+    return {
+      isOpen: false,
+      message: 'Unknown',
+      nextOpenTime: undefined
+    };
+  }
   const open = isOpen(bathroom);
   return {
     isOpen: open,
@@ -326,10 +340,19 @@ function parseTimeToMinutes(timeStr: string): number {
 }
 
 export function is24Hours(bathroom: Bathroom): boolean {
-  if (!bathroom?.hours) return false;
-  if (isScheduleHours(bathroom.hours)) return !!bathroom.hours.is24_7;
-  if (isWeeklyHours(bathroom.hours)) return !!bathroom.hours.is24_7;
-  return false;
+  console.log('\n==========================================');
+  console.log(`Checking ${bathroom.name} for 24/7 status`);
+  console.log('Raw hours data:', bathroom.hours);
+  
+  // ONLY check for explicit is24_7: true flag
+  const is24_7 = bathroom.hours && 
+                 typeof bathroom.hours === 'object' && 
+                 bathroom.hours.is24_7 === true;
+                 
+  console.log(`${bathroom.name} is24_7 flag:`, is24_7);
+  console.log('==========================================\n');
+  
+  return is24_7;
 }
 
 export function getNextOpenTime(bathroom: Bathroom, findOpening: boolean): string {
