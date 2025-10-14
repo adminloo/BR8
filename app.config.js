@@ -18,6 +18,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.loo1.br8",
+      targetName: "BR5",
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "We need your location to find bathrooms near you",
         NSLocationAlwaysAndWhenInUseUsageDescription: "We need your location to find bathrooms near you and provide updates about nearby facilities",
