@@ -10,6 +10,10 @@ export default {
     userInterfaceStyle: "light",
     newArchEnabled: true,
     scheme: "br8",
+
+
+
+    
     splash: {
       image: "./assets/LooLogoStart.png",
       resizeMode: "contain",
@@ -60,7 +64,9 @@ export default {
           locationAlwaysPermission: "$(PRODUCT_NAME) needs access to your location to find nearby bathrooms.",
           isIosBackgroundLocationEnabled: true
         }
-      ]
+      ],
+      "expo-router",
+      "expo-web-browser"
     ],
     extra: {
       env: {
