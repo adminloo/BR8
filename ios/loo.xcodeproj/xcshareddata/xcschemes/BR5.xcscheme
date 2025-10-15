@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "BR5.app"
-               BlueprintName = "BR5"
-               ReferencedContainer = "container:BR5.xcodeproj">
+               BuildableName = "Loo.app"
+               BlueprintName = "loo"
+               ReferencedContainer = "container:loo.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -35,7 +35,7 @@
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
                BuildableName = "BR5Tests.xctest"
                BlueprintName = "BR5Tests"
-               ReferencedContainer = "container:BR5.xcodeproj">
+               ReferencedContainer = "container:loo.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "BR5.app"
-            BlueprintName = "BR5"
-            ReferencedContainer = "container:BR5.xcodeproj">
+            BuildableName = "Loo.app"
+            BlueprintName = "loo"
+            ReferencedContainer = "container:loo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "BR5.app"
-            BlueprintName = "BR5"
-            ReferencedContainer = "container:BR5.xcodeproj">
+            BuildableName = "Loo.app"
+            BlueprintName = "loo"
+            ReferencedContainer = "container:loo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
