@@ -2,11 +2,11 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: "BR8",
+    name: "Loo!",
     slug: "BR8",
     version: "1.0.3",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: "./assets/images/icon.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
     scheme: "br8",
@@ -22,13 +22,12 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.loo1.br8",
+      buildNumber: "1",
+      displayName: "Loo!",
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "We need your location to find bathrooms near you",
-        NSLocationAlwaysAndWhenInUseUsageDescription: "We need your location to find bathrooms near you and provide updates about nearby facilities",
-        NSLocationAlwaysUsageDescription: "We need your location to find bathrooms near you and provide updates about nearby facilities",
-        UIBackgroundModes: [
-          "location"
-        ]
+        ITSAppUsesNonExemptEncryption: false,
+        CFBundleDisplayName: "Loo!"
       }
     },
     android: {
@@ -58,10 +57,7 @@ export default {
       [
         "expo-location",
         {
-          locationWhenInUsePermission: "$(PRODUCT_NAME) needs access to your location to find nearby bathrooms.",
-          locationAlwaysAndWhenInUsePermission: "$(PRODUCT_NAME) needs access to your location to find nearby bathrooms.",
-          locationAlwaysPermission: "$(PRODUCT_NAME) needs access to your location to find nearby bathrooms.",
-          isIosBackgroundLocationEnabled: true
+          locationWhenInUsePermission: "$(PRODUCT_NAME) needs access to your location to find nearby bathrooms."
         }
       ],
       "expo-router",

@@ -7,10 +7,11 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AddressInput } from '../components/AddressInput';
 import { useBathrooms } from '../hooks/useBathrooms';
 import { findNearbyBathrooms } from '../utils/distance';
 
@@ -24,11 +25,16 @@ export const SelectLocationScreen: React.FC = () => {
   const router = useRouter();
   const { bathrooms } = useBathrooms();
 
+  const [useMap, setUseMap] = useState(true);
+
   useEffect(() => {
     (async () => {
+      if (!useMap) return;
+      
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
+        setErrorMsg('Location services are not enabled. You can still add a bathroom by entering an address manually.');
+        setUseMap(false);
         return;
       }
 
@@ -48,11 +54,11 @@ export const SelectLocationScreen: React.FC = () => {
           }, 1000);
         }
       } catch (error) {
-        setErrorMsg('Error getting location');
-        console.error(error);
+        setErrorMsg('Could not get current location. You can still add a bathroom by entering an address manually.');
+        setUseMap(false);
       }
     })();
-  }, []);
+  }, [useMap]);
 
   const handleMapPress = (e: any) => {
     setMarkerLocation(e.nativeEvent.coordinate);
@@ -115,28 +121,40 @@ export const SelectLocationScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={{
-          latitude: markerLocation.latitude,
-          longitude: markerLocation.longitude,
-          latitudeDelta: 0.005,
-          longitudeDelta: 0.005,
-        }}
-        onPress={handleMapPress}
-      >
-        <Marker
-          coordinate={markerLocation}
-          draggable
-          onDragEnd={(e) => setMarkerLocation(e.nativeEvent.coordinate)}
-        />
-      </MapView>
+      <View style={styles.searchContainer}>
+        <AddressInput onLocationSelected={setMarkerLocation} mapRef={mapRef} />
+      </View>
 
-      <View style={styles.overlay}>
-        <Text style={styles.instructions}>
-          Tap or drag the marker to set the bathroom location
-        </Text>
+      {errorMsg && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{errorMsg}</Text>
+        </View>
+      )}
+
+      <View style={styles.mapContainer}>
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          region={{
+            latitude: markerLocation.latitude,
+            longitude: markerLocation.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          }}
+          onPress={handleMapPress}
+        >
+          <Marker
+            coordinate={markerLocation}
+            draggable
+            onDragEnd={(e) => setMarkerLocation(e.nativeEvent.coordinate)}
+          />
+        </MapView>
+
+        <View style={styles.overlay}>
+          <Text style={styles.instructions}>
+            Drag the pin to adjust the exact location
+          </Text>
+        </View>
       </View>
 
       <TouchableOpacity
@@ -153,17 +171,38 @@ export const SelectLocationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  searchContainer: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    zIndex: 1,
+  },
+  errorContainer: {
+    margin: 16,
+    padding: 16,
+    backgroundColor: '#FFE5E5',
+    borderRadius: 8,
+  },
+  errorText: {
+    color: '#D00',
+    fontSize: 14,
+  },
+  mapContainer: {
+    flex: 1,
   },
   map: {
     flex: 1,
   },
   overlay: {
     position: 'absolute',
-    top: 20,
+    bottom: 90,
     left: 20,
     right: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: {
@@ -175,7 +214,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   instructions: {
-    fontSize: 16,
+    fontSize: 14,
     textAlign: 'center',
     color: '#333',
   },
