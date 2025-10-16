@@ -67,17 +67,7 @@ export default function Layout() {
           name="index"
           options={{
             title: 'Loo',
-            headerTransparent: true,
-            headerBlurEffect: 'light',
-            headerStyle: {
-              backgroundColor: '#007AFF',
-            },
-            headerTitleStyle: {
-              color: '#fff',
-              fontSize: 20,
-              fontWeight: '600',
-            },
-            headerShadowVisible: false,
+            headerShown: false,
           }}
         />
         <Stack.Screen
@@ -88,7 +78,7 @@ export default function Layout() {
           }}
         />
         <Stack.Screen
-          name="bathroom-details"
+          name="bathroom-details/[id]"
           options={{
             title: 'Details',
             presentation: 'card'
@@ -99,6 +89,19 @@ export default function Layout() {
           options={{
             title: 'Select Location',
             presentation: 'modal'
+          }}
+        />
+        <Stack.Screen
+          name="home"
+          options={{
+            title: 'Home',
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            headerShown: false,
           }}
         />
       </Stack>

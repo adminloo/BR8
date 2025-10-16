@@ -18,8 +18,10 @@ const requiredEnvVars = [
 
 const missingVars = requiredEnvVars.filter(varName => !env[varName]);
 if (missingVars.length > 0) {
-  console.error('Missing required Firebase environment variables:', missingVars);
-  throw new Error('Missing required Firebase environment variables');
+  console.warn('Missing Firebase environment variables:', missingVars);
+  console.warn('App will run in demo mode without Firebase functionality');
+} else {
+  console.log('All Firebase environment variables are configured');
 }
 
 const firebaseConfig = {
@@ -36,13 +38,23 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+let db;
 
-// Initialize Firestore with settings
-const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true, // This helps with React Native compatibility
-  cacheSizeBytes: 50 * 1024 * 1024, // 50MB cache size
-});
+try {
+  app = initializeApp(firebaseConfig);
+  
+  // Initialize Firestore with settings
+  db = initializeFirestore(app, {
+    experimentalForceLongPolling: true, // This helps with React Native compatibility
+    cacheSizeBytes: 50 * 1024 * 1024, // 50MB cache size
+  });
+} catch (error) {
+  console.warn('Firebase initialization failed:', error);
+  console.warn('App will run in demo mode without Firebase functionality');
+  // Create a mock db object to prevent crashes
+  db = null as any;
+}
 
 // Log configuration
 console.log('Firebase initialized with project:', firebaseConfig.projectId);

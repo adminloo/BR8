@@ -19,8 +19,7 @@ module.exports = (() => {
     },
     watchFolders: [
       path.resolve(__dirname, 'node_modules'),
-      path.resolve(__dirname, 'node_modules/@radix-ui'),
-      path.resolve('C:/Users/T/AppData/Roaming/npm/node_modules/metro/node_modules')
+      path.resolve(__dirname, 'node_modules/@radix-ui')
     ],
     transformer: {
       ...config.transformer,
